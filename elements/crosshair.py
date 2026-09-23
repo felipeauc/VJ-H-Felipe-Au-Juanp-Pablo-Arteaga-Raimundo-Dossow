@@ -15,5 +15,6 @@ class Crosshair(pygame.sprite.Sprite):
 
         self.rect = self.image.get_rect()
 
+
     def update(self):
         self.rect.center = pygame.mouse.get_pos()

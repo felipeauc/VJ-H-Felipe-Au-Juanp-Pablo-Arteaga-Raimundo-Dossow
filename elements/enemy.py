@@ -16,13 +16,19 @@ class Enemy(pygame.sprite.Sprite):
         super().__init__()
 
         self.image = BUGpng_scaled
+
         self.rect = self.image.get_rect(
             center=(
                 screen.get_width() + 100,
-                random.randint(0, screen.get_height()),
+                random.randint(
+                    self.image.get_height() // 2,
+                    screen.get_height() - self.image.get_height() // 2,
+                ),
             )
         )
+
         self.speed = random.randint(3, 5)
+
 
     def update(self):
         # ? Mover a los enemigos

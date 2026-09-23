@@ -29,9 +29,12 @@ def gameloop(screen):
     # Iniciamos el loop principal de la escena inicial
     while running:
         for event in pygame.event.get():
+
             if event.type == KEYDOWN:
+
                 if event.key == K_ESCAPE:
                     running = False
+
             elif event.type == QUIT:
                 running = False
 

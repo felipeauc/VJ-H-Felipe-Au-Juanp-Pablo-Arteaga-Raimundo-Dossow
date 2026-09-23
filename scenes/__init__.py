@@ -1,0 +1,1 @@
+"""Escenas del juego."""

@@ -16,10 +16,17 @@
 """
 
 from .bullet import Bullet
+from .crosshair import Crosshair
 from .enemy import Enemy
 from .player import Player
+
+#---- FEATURE POWER UPS - IMPORTAR POWER UP ----
+from .powerup import PowerUp
+#----
 
 # ? Para agregar mas elementos, solo hay que importarlos y agregarlos a la lista __all__.
 # ? from .nombre_del_archivo import NombreDeLaClase
 
-__all__ = ["Bullet", "Enemy", "Player"]
+#---- FEATURE POWER UPS - AGREGAR POWER UP A ELEMENTS ----
+__all__ = ["Bullet", "Crosshair", "Enemy", "Player", "PowerUp"]
+#----

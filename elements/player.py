@@ -7,7 +7,7 @@ import pygame
 from pygame.locals import K_a, K_d, K_s, K_w
 from pygame.math import Vector2
 
-from elements import Bullet
+from .bullet import Bullet
 
 JorgePNG = pygame.image.load("assets/jorge.png")
 JorgePNG_scaled = pygame.transform.scale(JorgePNG, (80, 80))
@@ -21,6 +21,7 @@ class Player(pygame.sprite.Sprite):
 
         self.image = JorgePNG_scaled
         self.rect = self.image.get_rect()
+
         self.screen_width = screen.get_width()
         self.screen_height = screen.get_height()
 
@@ -34,6 +35,17 @@ class Player(pygame.sprite.Sprite):
         self.inicio_sobrecalentamiento = 0
         self.tiempo_sobrecalentamiento = 3000
 
+        #---- FEATURE POWER UPS - VARIABLES RAPID FIRE ----
+        self.rapid_fire = False
+        self.duracion_rapid_fire = 7000
+        self.fin_rapid_fire = 0
+        self.ultimo_disparo_rapid_fire = 0
+        self.cooldown_rapid_fire = 100
+        #----
+
+        #---- FEATURE POWER UPS - VARIABLE ESCUDO ----
+        self.escudo = False
+        #----
 
 
     def update(self, pressed_keys):
@@ -63,27 +75,89 @@ class Player(pygame.sprite.Sprite):
                 self.sobrecalentado = False
                 self.disparos = 0
 
+        #---- FEATURE POWER UPS - TERMINAR RAPID FIRE ----
+        if self.rapid_fire:
+
+            ahora = pygame.time.get_ticks()
+
+            if ahora >= self.fin_rapid_fire:
+                self.rapid_fire = False
+                self.disparos = 0
+                self.sobrecalentado = False
+        #----
+
+
     def shoot(self, mouse_pos):
 
-        if self.sobrecalentado:
-            return
+        #---- FEATURE POWER UPS - RAPID FIRE MAS RAPIDO ----
+        if self.rapid_fire:
 
+            ahora = pygame.time.get_ticks()
+
+            if ahora - self.ultimo_disparo_rapid_fire < self.cooldown_rapid_fire:
+                return
+
+            self.ultimo_disparo_rapid_fire = ahora
+
+        else:
+
+            if self.sobrecalentado:
+                return
+        #----
 
         # TODO (2.4): Calcular direccion de la bala
-        distance =  Vector2(mouse_pos) - Vector2(self.rect.center)
+        distance = Vector2(mouse_pos) - Vector2(self.rect.center)
+
+        #---- FEATURE POWER UPS - EVITAR DIRECCION DE LARGO CERO ----
+        if distance.length() == 0:
+            return
+        #----
+
         direction = distance.normalize()
 
         # TODO (2.4): Crear bala y agregarla al grupo de balas
-        bullet = Bullet ( 
+        bullet = Bullet(
             self.rect.center,
             direction,
             self.screen_width,
             self.screen_height,
-            )
+        )
+
         self.bullets.add(bullet)
-        self.disparos += 1
-        if self.disparos >= self.max_disparos:
-            self.sobrecalentado = True
-            self.inicio_sobrecalentamiento = pygame.time.get_ticks()
+
+        #---- FEATURE POWER UPS - RAPID FIRE SIN SOBRECALENTAMIENTO ----
+        if not self.rapid_fire:
+
+            self.disparos += 1
+
+            if self.disparos >= self.max_disparos:
+
+                self.sobrecalentado = True
+
+                self.inicio_sobrecalentamiento = (
+                    pygame.time.get_ticks()
+                )
+        #----
 
         pass
+
+
+    #---- FEATURE POWER UPS - ACTIVAR POWER UP ----
+    def activar_powerup(self, tipo):
+
+        if tipo == "rapid_fire":
+
+            self.rapid_fire = True
+
+            self.fin_rapid_fire = (
+                pygame.time.get_ticks()
+                + self.duracion_rapid_fire
+            )
+
+            self.sobrecalentado = False
+            self.disparos = 0
+
+        elif tipo == "shield":
+
+            self.escudo = True
+    #----
