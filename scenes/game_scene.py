@@ -2,7 +2,7 @@ if __name__ == "__main__":
     raise RuntimeError("\033c❌ ESTE ARCHIVO NO DEBE EJECUTARSE. EJECUTA main.py")
 
 import pygame
-from pygame.locals import K_ESCAPE, KEYDOWN, MOUSEBUTTONDOWN, QUIT
+from pygame.locals import K_ESCAPE, K_SPACE, KEYDOWN, MOUSEBUTTONDOWN, QUIT
 
 from elements import Crosshair, Enemy, Player, PowerUp
 
@@ -46,6 +46,11 @@ def gameloop(screen):
     icono_flecha_sombra.fill((0, 0, 0, 255), special_flags=pygame.BLEND_RGBA_MULT)
     #----
 
+    #---- FEATURE HABILIDAD ESPECIAL - ESTELAS DASH ----
+    estelas_dash = []
+    duracion_estela = 300
+    #----
+
     # ? Crear el reloj del juego
     clock = pygame.time.Clock()
 
@@ -63,6 +68,15 @@ def gameloop(screen):
             if event.type == KEYDOWN:  # se presiono una tecla?
                 if event.key == K_ESCAPE:  # era la tecla de escape?
                     running = False  # terminamos el loop
+
+                #---- FEATURE HABILIDAD ESPECIAL - ACTIVAR DASH ----
+                if event.key == K_SPACE:
+                    resultado_dash = player.dash(pygame.key.get_pressed())
+
+                    if resultado_dash is not None:
+                        inicio, fin = resultado_dash
+                        estelas_dash.append((inicio, fin, pygame.time.get_ticks()))
+                #----
 
             elif event.type == QUIT:  # fue un click al cierre de la ventana?
                 running = False  # terminamos el loop
@@ -100,6 +114,26 @@ def gameloop(screen):
 
         #---- FEATURE POWER UPS - ACTUALIZAR POWER UPS ----
         powerups.update()
+        #----
+
+        #---- FEATURE HABILIDAD ESPECIAL - DIBUJAR ESTELA DASH ----
+        ahora = pygame.time.get_ticks()
+
+        for estela in estelas_dash[:]:
+            inicio, fin, tiempo_inicio = estela
+            tiempo_pasado = ahora - tiempo_inicio
+
+            if tiempo_pasado >= duracion_estela:
+                estelas_dash.remove(estela)
+                continue
+
+            transparencia = int(200 * (1 - tiempo_pasado / duracion_estela))
+            superficie_estela = pygame.Surface((screen.get_width(), screen.get_height()), pygame.SRCALPHA)
+
+            pygame.draw.line(superficie_estela, (255, 180, 0, transparencia), inicio, fin, 30)
+            pygame.draw.line(superficie_estela, (255, 245, 120, transparencia), inicio, fin, 9)
+
+            screen.blit(superficie_estela, (0, 0))
         #----
 
         # ? Dibujar los sprites actualizados en la ventana

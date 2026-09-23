@@ -9,7 +9,6 @@ from pygame.math import Vector2
 
 from .bullet import Bullet
 
-
 JorgePNG = pygame.image.load("assets/jorge.png")
 JorgePNG_scaled = pygame.transform.scale(JorgePNG, (80, 80))
 
@@ -59,6 +58,12 @@ class Player(pygame.sprite.Sprite):
         self.escudo = False
         #----
 
+        #---- FEATURE HABILIDAD ESPECIAL - VARIABLES DASH ----
+        self.distancia_dash = 140
+        self.cooldown_dash = 1500
+        self.ultimo_dash = -self.cooldown_dash
+        #----
+
 
     def update(self, pressed_keys):
 
@@ -87,19 +92,13 @@ class Player(pygame.sprite.Sprite):
         ahora = pygame.time.get_ticks()
 
         if self.sobrecalentado:
-
-            if (
-                ahora - self.inicio_sobrecalentamiento
-                >= self.tiempo_sobrecalentamiento
-            ):
+            if ahora - self.inicio_sobrecalentamiento >= self.tiempo_sobrecalentamiento:
                 self.sobrecalentado = False
                 self.disparos = 0
 
         #---- FEATURE POWER UPS - TERMINAR RAPID FIRE ----
         if self.rapid_fire:
-
             if ahora >= self.fin_rapid_fire:
-
                 self.rapid_fire = False
                 self.disparos = 0
                 self.sobrecalentado = False
@@ -114,19 +113,14 @@ class Player(pygame.sprite.Sprite):
 
         #---- FEATURE POWER UPS - RAPID FIRE ----
         if self.rapid_fire:
-
             ahora = pygame.time.get_ticks()
 
-            if (
-                ahora - self.ultimo_disparo_rapid_fire
-                < self.cooldown_rapid_fire
-            ):
+            if ahora - self.ultimo_disparo_rapid_fire < self.cooldown_rapid_fire:
                 return
 
             self.ultimo_disparo_rapid_fire = ahora
 
         else:
-
             if self.sobrecalentado:
                 return
         #----
@@ -140,22 +134,14 @@ class Player(pygame.sprite.Sprite):
         direction = distance.normalize()
 
         # TODO (2.4): Crear bala y agregarla al grupo de balas
-        bullet = Bullet(
-            self.rect.center,
-            direction,
-            self.screen_width,
-            self.screen_height,
-        )
-
+        bullet = Bullet(self.rect.center, direction, self.screen_width, self.screen_height)
         self.bullets.add(bullet)
 
         #---- FEATURE POWER UPS - RAPID FIRE SIN SOBRECALENTAMIENTO ----
         if not self.rapid_fire:
-
             self.disparos += 1
 
             if self.disparos >= self.max_disparos:
-
                 self.sobrecalentado = True
                 self.inicio_sobrecalentamiento = pygame.time.get_ticks()
         #----
@@ -167,19 +153,12 @@ class Player(pygame.sprite.Sprite):
     def activar_powerup(self, tipo):
 
         if tipo == "rapid_fire":
-
             self.rapid_fire = True
-
-            self.fin_rapid_fire = (
-                pygame.time.get_ticks()
-                + self.duracion_rapid_fire
-            )
-
+            self.fin_rapid_fire = pygame.time.get_ticks() + self.duracion_rapid_fire
             self.sobrecalentado = False
             self.disparos = 0
 
         elif tipo == "shield":
-
             self.escudo = True
 
         self.actualizar_apariencia()
@@ -204,4 +183,48 @@ class Player(pygame.sprite.Sprite):
             self.image = JorgePNG_scaled
 
         self.rect = self.image.get_rect(center=centro)
+    #----
+
+
+    #---- FEATURE HABILIDAD ESPECIAL - DASH ----
+    def dash(self, pressed_keys):
+
+        ahora = pygame.time.get_ticks()
+
+        if ahora - self.ultimo_dash < self.cooldown_dash:
+            return None
+
+        direccion_x = 0
+        direccion_y = 0
+
+        if pressed_keys[K_w]:
+            direccion_y -= 1
+
+        if pressed_keys[K_s]:
+            direccion_y += 1
+
+        if pressed_keys[K_a]:
+            direccion_x -= 1
+
+        if pressed_keys[K_d]:
+            direccion_x += 1
+
+        if direccion_x == 0 and direccion_y == 0:
+            return None
+
+        direccion = Vector2(direccion_x, direccion_y).normalize()
+        posicion_inicial = self.rect.center
+
+        self.rect.x += int(direccion.x * self.distancia_dash)
+        self.rect.y += int(direccion.y * self.distancia_dash)
+
+        self.rect.left = max(self.rect.left, 0)
+        self.rect.right = min(self.rect.right, self.screen_width)
+        self.rect.top = max(self.rect.top, 0)
+        self.rect.bottom = min(self.rect.bottom, self.screen_height)
+
+        posicion_final = self.rect.center
+        self.ultimo_dash = ahora
+
+        return posicion_inicial, posicion_final
     #----
