@@ -9,8 +9,20 @@ from pygame.math import Vector2
 
 from .bullet import Bullet
 
+
 JorgePNG = pygame.image.load("assets/jorge.png")
 JorgePNG_scaled = pygame.transform.scale(JorgePNG, (80, 80))
+
+#---- FEATURE POWER UPS - CARGAR SPRITES DE ESTADO ----
+JorgeShieldPNG = pygame.image.load("assets/jorge_shield.png")
+JorgeShieldPNG_scaled = pygame.transform.scale(JorgeShieldPNG, (80, 80))
+
+JorgeRapidPNG = pygame.image.load("assets/jorge_rapid.png")
+JorgeRapidPNG_scaled = pygame.transform.scale(JorgeRapidPNG, (80, 80))
+
+JorgeReloadPNG = pygame.image.load("assets/jorge_reload.png")
+JorgeReloadPNG_scaled = pygame.transform.scale(JorgeReloadPNG, (80, 80))
+#----
 
 
 class Player(pygame.sprite.Sprite):
@@ -35,7 +47,7 @@ class Player(pygame.sprite.Sprite):
         self.inicio_sobrecalentamiento = 0
         self.tiempo_sobrecalentamiento = 3000
 
-        #---- FEATURE POWER UPS - VARIABLES RAPID FIRE ----
+        #---- FEATURE POWER UPS - RAPID FIRE ----
         self.rapid_fire = False
         self.duracion_rapid_fire = 7000
         self.fin_rapid_fire = 0
@@ -43,19 +55,23 @@ class Player(pygame.sprite.Sprite):
         self.cooldown_rapid_fire = 100
         #----
 
-        #---- FEATURE POWER UPS - VARIABLE ESCUDO ----
+        #---- FEATURE POWER UPS - ESCUDO ----
         self.escudo = False
         #----
 
 
     def update(self, pressed_keys):
+
         # ? Mover a Jorge
         if pressed_keys[K_w]:
             self.rect.move_ip(0, -4)
+
         if pressed_keys[K_s]:
             self.rect.move_ip(0, 4)
+
         if pressed_keys[K_a]:
             self.rect.move_ip(-4, 0)
+
         if pressed_keys[K_d]:
             self.rect.move_ip(4, 0)
 
@@ -68,33 +84,43 @@ class Player(pygame.sprite.Sprite):
         # TODO (2.4): Actualizar las balas
         self.bullets.update()
 
-        if self.sobrecalentado:
-            ahora = pygame.time.get_ticks()
+        ahora = pygame.time.get_ticks()
 
-            if ahora - self.inicio_sobrecalentamiento >= self.tiempo_sobrecalentamiento:
+        if self.sobrecalentado:
+
+            if (
+                ahora - self.inicio_sobrecalentamiento
+                >= self.tiempo_sobrecalentamiento
+            ):
                 self.sobrecalentado = False
                 self.disparos = 0
 
         #---- FEATURE POWER UPS - TERMINAR RAPID FIRE ----
         if self.rapid_fire:
 
-            ahora = pygame.time.get_ticks()
-
             if ahora >= self.fin_rapid_fire:
+
                 self.rapid_fire = False
                 self.disparos = 0
                 self.sobrecalentado = False
         #----
 
+        #---- FEATURE POWER UPS - ACTUALIZAR SPRITE DEL JUGADOR ----
+        self.actualizar_apariencia()
+        #----
+
 
     def shoot(self, mouse_pos):
 
-        #---- FEATURE POWER UPS - RAPID FIRE MAS RAPIDO ----
+        #---- FEATURE POWER UPS - RAPID FIRE ----
         if self.rapid_fire:
 
             ahora = pygame.time.get_ticks()
 
-            if ahora - self.ultimo_disparo_rapid_fire < self.cooldown_rapid_fire:
+            if (
+                ahora - self.ultimo_disparo_rapid_fire
+                < self.cooldown_rapid_fire
+            ):
                 return
 
             self.ultimo_disparo_rapid_fire = ahora
@@ -108,10 +134,8 @@ class Player(pygame.sprite.Sprite):
         # TODO (2.4): Calcular direccion de la bala
         distance = Vector2(mouse_pos) - Vector2(self.rect.center)
 
-        #---- FEATURE POWER UPS - EVITAR DIRECCION DE LARGO CERO ----
         if distance.length() == 0:
             return
-        #----
 
         direction = distance.normalize()
 
@@ -133,10 +157,7 @@ class Player(pygame.sprite.Sprite):
             if self.disparos >= self.max_disparos:
 
                 self.sobrecalentado = True
-
-                self.inicio_sobrecalentamiento = (
-                    pygame.time.get_ticks()
-                )
+                self.inicio_sobrecalentamiento = pygame.time.get_ticks()
         #----
 
         pass
@@ -160,4 +181,27 @@ class Player(pygame.sprite.Sprite):
         elif tipo == "shield":
 
             self.escudo = True
+
+        self.actualizar_apariencia()
+    #----
+
+
+    #---- FEATURE POWER UPS - CAMBIAR APARIENCIA DEL JUGADOR ----
+    def actualizar_apariencia(self):
+
+        centro = self.rect.center
+
+        if self.sobrecalentado:
+            self.image = JorgeReloadPNG_scaled
+
+        elif self.rapid_fire:
+            self.image = JorgeRapidPNG_scaled
+
+        elif self.escudo:
+            self.image = JorgeShieldPNG_scaled
+
+        else:
+            self.image = JorgePNG_scaled
+
+        self.rect = self.image.get_rect(center=centro)
     #----

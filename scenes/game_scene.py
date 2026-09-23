@@ -12,14 +12,7 @@ def gameloop(screen):
 
     # ? Añadir fondo del display
     background_image = pygame.image.load("assets/background.png").convert()
-
-    background_image = pygame.transform.scale(
-        background_image,
-        (
-            screen.get_width(),
-            screen.get_height(),
-        )
-    )
+    background_image = pygame.transform.scale(background_image, (screen.get_width(), screen.get_height()))
 
     # ? Crear la instancia de jugador
     player = Player(screen)
@@ -45,9 +38,16 @@ def gameloop(screen):
     pygame.time.set_timer(ADDPOWERUP, 8000)
     #----
 
+    #---- FEATURE POWER UPS - ICONOS DE MUNICION ----
+    icono_flecha = pygame.image.load("assets/bullet.png").convert_alpha()
+    icono_flecha = pygame.transform.scale(icono_flecha, (44, 16))
+
+    icono_flecha_sombra = icono_flecha.copy()
+    icono_flecha_sombra.fill((0, 0, 0, 255), special_flags=pygame.BLEND_RGBA_MULT)
+    #----
+
     # ? Crear el reloj del juego
     clock = pygame.time.Clock()
-    font_timer = pygame.font.Font(None, 36)
 
     running = True  # variable booleana para manejar el loop
 
@@ -61,7 +61,6 @@ def gameloop(screen):
         for event in pygame.event.get():
 
             if event.type == KEYDOWN:  # se presiono una tecla?
-
                 if event.key == K_ESCAPE:  # era la tecla de escape?
                     running = False  # terminamos el loop
 
@@ -70,37 +69,26 @@ def gameloop(screen):
 
             # ? Generar enemigos
             elif event.type == ADDENEMY:
-
                 new_enemy = Enemy(screen)
-
                 enemies.add(new_enemy)
                 all_sprites.add(new_enemy)
 
             #---- FEATURE POWER UPS - GENERAR POWER UP ----
             elif event.type == ADDPOWERUP:
-
                 if len(powerups) == 0:
-
                     new_powerup = PowerUp(screen)
-
                     powerups.add(new_powerup)
             #----
 
             # TODO (2.5): Disparar balas al hacer click con el mouse
             elif event.type == MOUSEBUTTONDOWN:
-
                 if event.button == 1:
-
                     mouse_pos = pygame.mouse.get_pos()
-
                     player.shoot(mouse_pos)
 
         #---- FEATURE POWER UPS - DISPARO AUTOMATICO RAPID FIRE ----
         if player.rapid_fire and pygame.mouse.get_pressed()[0]:
-
-            player.shoot(
-                pygame.mouse.get_pos()
-            )
+            player.shoot(pygame.mouse.get_pos())
         #----
 
         # ? Actualizar el estado interno de los sprites (posiciones, etc)
@@ -116,174 +104,95 @@ def gameloop(screen):
 
         # ? Dibujar los sprites actualizados en la ventana
         for entity in all_sprites:
-
-            screen.blit(
-                entity.image,
-                entity.rect
-            )
+            screen.blit(entity.image, entity.rect)
 
         #---- FEATURE POWER UPS - DIBUJAR POWER UPS ----
         for powerup in powerups:
-
-            screen.blit(
-                powerup.image,
-                powerup.rect
-            )
+            screen.blit(powerup.image, powerup.rect)
         #----
 
         # TODO (2.5): Dibujar las balas en la ventana
         for bullet in player.bullets:
+            screen.blit(bullet.image, bullet.rect)
 
-            screen.blit(
-                bullet.image,
-                bullet.rect
-            )
+        #---- FEATURE POWER UPS - HUD DE MUNICION CON FLECHAS ----
+        inicio_x = 20
+        inicio_y = 20
+        separacion = 8
+        ancho_icono = icono_flecha.get_width()
 
-        #---- FEATURE POWER UPS - DIBUJAR ESCUDO ACTIVO ----
-        if player.escudo:
+        for i in range(player.max_disparos):
 
-            pygame.draw.circle(
-                screen,
-                (0, 180, 255),
-                player.rect.center,
-                48,
-                4,
-            )
+            x = inicio_x + i * (ancho_icono + separacion)
+            posicion_icono = (x, inicio_y)
+
+            if player.rapid_fire:
+                screen.blit(icono_flecha, posicion_icono)
+
+            elif i >= player.max_disparos - player.disparos:
+                screen.blit(icono_flecha_sombra, posicion_icono)
+
+            else:
+                screen.blit(icono_flecha, posicion_icono)
         #----
 
-        #---- FEATURE POWER UPS - MOSTRAR RAPID FIRE ----
+        #---- FEATURE POWER UPS - BARRA DE RECARGA COMPACTA ----
+        ancho_total = player.max_disparos * ancho_icono + (player.max_disparos - 1) * separacion
+
+        barra_x = inicio_x
+        barra_y = inicio_y + icono_flecha.get_height() + 6
+        barra_alto = 5
+
+        if player.sobrecalentado:
+
+            tiempo_pasado = pygame.time.get_ticks() - player.inicio_sobrecalentamiento
+            progreso = tiempo_pasado / player.tiempo_sobrecalentamiento
+            progreso = max(0, min(1, progreso))
+
+            pygame.draw.rect(screen, (35, 35, 40), (barra_x, barra_y, ancho_total, barra_alto), border_radius=3)
+            pygame.draw.rect(screen, (255, 90, 55), (barra_x, barra_y, int(ancho_total * progreso), barra_alto), border_radius=3)
+        #----
+
+        #---- FEATURE POWER UPS - BARRA RAPID FIRE COMPACTA ----
         if player.rapid_fire:
 
-            tiempo_restante = (
-                player.fin_rapid_fire
-                - pygame.time.get_ticks()
-            ) / 1000
+            tiempo_restante = player.fin_rapid_fire - pygame.time.get_ticks()
+            progreso = tiempo_restante / player.duracion_rapid_fire
+            progreso = max(0, min(1, progreso))
 
-            tiempo_restante = max(
-                0,
-                tiempo_restante
-            )
-
-            texto_timer = font_timer.render(
-                f"RAPID FIRE: {tiempo_restante:.1f}s",
-                True,
-                (255, 255, 0),
-            )
-
-            screen.blit(
-                texto_timer,
-                (20, 20)
-            )
-        #----
-
-        elif player.sobrecalentado:
-
-            tiempo_pasado = (
-                pygame.time.get_ticks()
-                - player.inicio_sobrecalentamiento
-            )
-
-            tiempo_restante = (
-                player.tiempo_sobrecalentamiento
-                - tiempo_pasado
-            ) / 1000
-
-            tiempo_restante = max(
-                0,
-                tiempo_restante
-            )
-
-            texto_timer = font_timer.render(
-                f"SOBRECALENTADO: {tiempo_restante:.1f}s",
-                True,
-                (255, 0, 0),
-            )
-
-            screen.blit(
-                texto_timer,
-                (20, 20)
-            )
-
-        else:
-
-            texto_timer = font_timer.render(
-                f"CALOR: {player.disparos}/{player.max_disparos}",
-                True,
-                (255, 255, 255),
-            )
-
-            screen.blit(
-                texto_timer,
-                (20, 20)
-            )
-
-        #---- FEATURE POWER UPS - MOSTRAR HUD ESCUDO ----
-        if player.escudo:
-
-            texto_escudo = font_timer.render(
-                "ESCUDO",
-                True,
-                (0, 200, 255),
-            )
-
-            screen.blit(
-                texto_escudo,
-                (20, 55)
-            )
+            pygame.draw.rect(screen, (35, 35, 40), (barra_x, barra_y, ancho_total, barra_alto), border_radius=3)
+            pygame.draw.rect(screen, (255, 205, 40), (barra_x, barra_y, int(ancho_total * progreso), barra_alto), border_radius=3)
         #----
 
         #---- FEATURE POWER UPS - RECOGER POWER UP ----
-        powerups_recogidos = pygame.sprite.spritecollide(
-            player,
-            powerups,
-            True,
-        )
+        powerups_recogidos = pygame.sprite.spritecollide(player, powerups, True)
 
         for powerup in powerups_recogidos:
-
-            player.activar_powerup(
-                powerup.tipo
-            )
+            player.activar_powerup(powerup.tipo)
         #----
 
         # ? Calcular colisiones entre jugador y enemigos
 
         #---- FEATURE POWER UPS - ESCUDO CONTRA BUG ----
-        enemigos_tocando = pygame.sprite.spritecollide(
-            player,
-            enemies,
-            False,
-        )
+        enemigos_tocando = pygame.sprite.spritecollide(player, enemies, False)
 
         if enemigos_tocando:
 
             if player.escudo:
-
                 player.escudo = False
-
                 enemigos_tocando[0].kill()
+                player.actualizar_apariencia()
 
             else:
-
                 player.kill()
-
                 pygame.mouse.set_visible(True)
-
                 return "dead"
         #----
 
         # TODO (2.6): Calcular colisiones entre balas y enemigos
-        pygame.sprite.groupcollide(
-            player.bullets,
-            enemies,
-            True,
-            True,
-        )
+        pygame.sprite.groupcollide(player.bullets, enemies, True, True)
 
-        screen.blit(
-            crosshair.image,
-            crosshair.rect
-        )
+        screen.blit(crosshair.image, crosshair.rect)
 
         # ? Actualizar la ventana para reflejar todos los cambios
         pygame.display.flip()
