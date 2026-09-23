@@ -4,7 +4,7 @@ if __name__ == "__main__":
 import math
 
 import pygame
-from pygame.locals import K_a, K_d, K_s, K_w
+from pygame.locals import K_a, K_d, K_s, K_w, K_LSHIFT, K_RSHIFT
 from pygame.math import Vector2
 
 from .bullet import Bullet
@@ -46,6 +46,11 @@ class Player(pygame.sprite.Sprite):
         self.inicio_sobrecalentamiento = 0
         self.tiempo_sobrecalentamiento = 3000
 
+        #---- FEATURE VIDAS DEL JUGADOR - 5 CORAZONES ----
+        self.vidas = 5
+        self.max_vidas = 5
+        #----
+
         #---- FEATURE POWER UPS - RAPID FIRE ----
         self.rapid_fire = False
         self.duracion_rapid_fire = 7000
@@ -58,6 +63,11 @@ class Player(pygame.sprite.Sprite):
         self.escudo = False
         #----
 
+        #---- FEATURE HABILIDAD ESPECIAL - VELOCIDAD CON SHIFT ----
+        self.velocidad_normal = 4
+        self.velocidad_rapida = 6
+        #----
+
         #---- FEATURE HABILIDAD ESPECIAL - VARIABLES DASH ----
         self.distancia_dash = 140
         self.cooldown_dash = 1500
@@ -67,18 +77,26 @@ class Player(pygame.sprite.Sprite):
 
     def update(self, pressed_keys):
 
+        #---- FEATURE HABILIDAD ESPECIAL - VELOCIDAD CON SHIFT ----
+        if pressed_keys[K_LSHIFT] or pressed_keys[K_RSHIFT]:
+            velocidad = self.velocidad_rapida
+
+        else:
+            velocidad = self.velocidad_normal
+        #----
+
         # ? Mover a Jorge
         if pressed_keys[K_w]:
-            self.rect.move_ip(0, -4)
+            self.rect.move_ip(0, -velocidad)
 
         if pressed_keys[K_s]:
-            self.rect.move_ip(0, 4)
+            self.rect.move_ip(0, velocidad)
 
         if pressed_keys[K_a]:
-            self.rect.move_ip(-4, 0)
+            self.rect.move_ip(-velocidad, 0)
 
         if pressed_keys[K_d]:
-            self.rect.move_ip(4, 0)
+            self.rect.move_ip(velocidad, 0)
 
         # ? Mantener a Jorge en Pantalla
         self.rect.left = max(self.rect.left, 0)
@@ -147,6 +165,17 @@ class Player(pygame.sprite.Sprite):
         #----
 
         pass
+
+
+    #---- FEATURE VIDAS DEL JUGADOR - RECIBIR DAÑO ----
+    def recibir_dano(self):
+        self.vidas -= 1
+
+        if self.vidas <= 0:
+            return True
+
+        return False
+    #----
 
 
     #---- FEATURE POWER UPS - ACTIVAR POWER UP ----

@@ -1,6 +1,6 @@
 import pygame
 
-from scenes import basic_scene, game_scene, death_scene
+from scenes import basic_scene, game_scene, death_scene, shop_scene
 
 # ? Inicializamos pygame
 pygame.init()
@@ -13,19 +13,57 @@ SCREEN_HEIGHT = 768
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 # ? Aqui se ejecutaran las escenas del juego en orden
-basic_scene.gameloop(screen)
+running = True
 
-while True:
+while running:
 
-    resultado = game_scene.gameloop(screen)
+    screen = pygame.display.get_surface()
 
-    if resultado == "dead":
+    resultado_menu = basic_scene.gameloop(screen)
 
-        resultado_muerte = death_scene.gameloop(screen)
+    if resultado_menu == "quit":
+        break
 
-        if resultado_muerte == "retry":
-            continue
+    if resultado_menu == "shop":
 
-    break
+        screen = pygame.display.get_surface()
+        resultado_tienda = shop_scene.gameloop(screen)
+
+        if resultado_tienda == "quit":
+            break
+
+        continue
+
+    if resultado_menu == "play":
+
+        jugando = True
+
+        while jugando:
+
+            screen = pygame.display.get_surface()
+            resultado = game_scene.gameloop(screen)
+            screen = pygame.display.get_surface()
+
+            #---- FEATURE MENU PAUSA - VOLVER AL MENU PRINCIPAL ----
+            if resultado == "menu":
+                jugando = False
+                continue
+            #----
+
+            if resultado == "dead":
+
+                resultado_muerte = death_scene.gameloop(screen)
+
+                if resultado_muerte == "retry":
+                    continue
+
+                if resultado_muerte == "quit":
+                    running = False
+
+                jugando = False
+
+            elif resultado == "quit":
+                running = False
+                jugando = False
 
 pygame.quit()

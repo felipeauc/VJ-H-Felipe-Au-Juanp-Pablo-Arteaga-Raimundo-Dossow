@@ -4,10 +4,9 @@ if __name__ == "__main__":
 import pygame
 from pygame.math import Vector2
 
-# TODO (2.1): Cargar imagen de la bala
+import customization
 
-bulletPNG = pygame.image.load("assets/bullet.png")
-bulletPNG_scaled = pygame.transform.scale(bulletPNG, (26, 14))
+# TODO (2.1): Cargar imagen de la bala
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -18,6 +17,12 @@ class Bullet(pygame.sprite.Sprite):
         super().__init__()
 
         # TODO (2.1): Aspecto inicial de nuestra bala
+
+        #---- FEATURE TIENDA - SPRITE DEL PROYECTIL ----
+        bulletPNG = pygame.image.load(customization.obtener_asset("bullet")).convert_alpha()
+        bulletPNG_scaled = pygame.transform.scale(bulletPNG, (26, 14))
+        #----
+
         self.image = bulletPNG_scaled
         self.rect = self.image.get_rect()
 
@@ -35,21 +40,12 @@ class Bullet(pygame.sprite.Sprite):
         self.image = pygame.transform.rotate(bulletPNG_scaled, angle)
         self.rect = self.image.get_rect(center=start_pos)
         
-
     def update(self):
         # TODO (2.3): Mover la bala
-        self.rect.move_ip(
-            self.direction.x * self.speed, 
-            self.direction.y * self.speed,
-        )
-        
+        self.rect.move_ip(self.direction.x * self.speed, self.direction.y * self.speed)
+
         # TODO (2.3): Eliminar la bala si sale de la pantalla
-        if (
-            self.rect.right < 0 
-            or self.rect.left > self.screen_width
-            or self.rect.bottom < 0
-            or self.rect.top > self.screen_height
-        ):
+        if self.rect.right < 0 or self.rect.left > self.screen_width or self.rect.bottom < 0 or self.rect.top > self.screen_height:
             self.kill()
 
         pass

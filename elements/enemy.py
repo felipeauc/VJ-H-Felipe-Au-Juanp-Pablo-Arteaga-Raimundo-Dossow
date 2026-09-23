@@ -5,8 +5,7 @@ import random
 
 import pygame
 
-BUGpng = pygame.image.load("assets/bug.png")
-BUGpng_scaled = pygame.transform.scale(BUGpng, (64, 64))
+import customization
 
 
 class Enemy(pygame.sprite.Sprite):
@@ -15,20 +14,20 @@ class Enemy(pygame.sprite.Sprite):
         # ? super().__init__() inicializa la clase padre (Sprite)
         super().__init__()
 
+        #---- FEATURE TIENDA - SPRITE DEL ENEMIGO ----
+        BUGpng = pygame.image.load(customization.obtener_asset("bug")).convert_alpha()
+        BUGpng_scaled = pygame.transform.scale(BUGpng, (64, 64))
         self.image = BUGpng_scaled
+        #----
 
         self.rect = self.image.get_rect(
             center=(
                 screen.get_width() + 100,
-                random.randint(
-                    self.image.get_height() // 2,
-                    screen.get_height() - self.image.get_height() // 2,
-                ),
+                random.randint(self.image.get_height() // 2, screen.get_height() - self.image.get_height() // 2),
             )
         )
 
         self.speed = random.randint(3, 5)
-
 
     def update(self):
         # ? Mover a los enemigos
