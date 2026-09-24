@@ -60,18 +60,13 @@ def gameloop(screen):
         # Limpiar pantalla (fondo negro)
 
         #---- FEATURE MENU INICIO - FONDO PERSONALIZADO ----
-        background = pygame.image.load(customization.obtener_asset("background")).convert()
+        background = pygame.image.load(customization.obtener_asset("Inicio_Back")).convert()
         background = pygame.transform.scale(background, (screen.get_width(), screen.get_height()))
         screen.blit(background, (0, 0))
 
         sombra = pygame.Surface((screen.get_width(), screen.get_height()), pygame.SRCALPHA)
         sombra.fill((0, 0, 0, 145))
         screen.blit(sombra, (0, 0))
-        #----
-
-        #---- FEATURE MENU INICIO - TITULO ----
-        titulo = font_titulo.render("JORGE VS BUGS", True, (255, 215, 80))
-        screen.blit(titulo, titulo.get_rect(center=(screen.get_width() // 2, 180)))
         #----
 
         #---- FEATURE MENU INICIO - DIBUJAR BOTONES ----
