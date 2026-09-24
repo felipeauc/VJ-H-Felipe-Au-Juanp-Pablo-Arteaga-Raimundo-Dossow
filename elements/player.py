@@ -94,6 +94,11 @@ class Player(pygame.sprite.Sprite):
         self.sprint = False
         #----
 
+        #---- FEATURE NUEVOS ENEMIGOS - SLOW BUG M ----
+        self.fin_slow = 0
+        self.factor_slow = 0.5
+        #----
+
         #---- FEATURE HABILIDAD ESPECIAL - VARIABLES DASH ----
         self.distancia_dash = 140
         self.cooldown_dash = 1500
@@ -121,6 +126,11 @@ class Player(pygame.sprite.Sprite):
 
         else:
             velocidad = self.velocidad_normal
+        #----
+
+        #---- FEATURE NUEVOS ENEMIGOS - APLICAR SLOW ----
+        if pygame.time.get_ticks() < self.fin_slow:
+            velocidad = int(velocidad * self.factor_slow)
         #----
 
         # ? Mover a Jorge
@@ -325,4 +335,10 @@ class Player(pygame.sprite.Sprite):
         #----
 
         return posicion_inicial, posicion_final
+    #----
+    
+    #---- FEATURE NUEVOS ENEMIGOS - RECIBIR SLOW ----      
+    def aplicar_slow(self):
+
+        self.fin_slow = pygame.time.get_ticks() + 2500
     #----

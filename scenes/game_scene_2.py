@@ -1,6 +1,6 @@
 if __name__ == "__main__":
     raise RuntimeError("\033c❌ ESTE ARCHIVO NO DEBE EJECUTARSE. EJECUTA main.py")
-
+import random
 import pygame
 from pygame.locals import K_ESCAPE, K_SPACE, KEYDOWN, MOUSEBUTTONDOWN, QUIT
 
@@ -56,6 +56,10 @@ def gameloop(screen):
     enemies = pygame.sprite.Group()
     all_sprites = pygame.sprite.Group()
     all_sprites.add(player)
+
+    #---- FEATURE NUEVOS ENEMIGOS - PROYECTILES ----
+    proyectiles_enemigos = pygame.sprite.Group()
+    #----
 
     #---- FEATURE PROGRESION DE NIVELES - DRAGONES NIVEL 2 ----
     enemigos_nivel2 = [
@@ -249,13 +253,18 @@ def gameloop(screen):
             #---- FEATURE PROGRESION DE NIVELES - GENERAR DRAGONES NIVEL 2 ----
             elif event.type == ADDENEMY:
 
-                ruta_enemigo = enemigos_nivel2[indice_enemigo]
-                indice_enemigo = (indice_enemigo + 1) % len(enemigos_nivel2)
+                #---- FEATURE NUEVOS ENEMIGOS - PROBABILIDADES ----
+                tipo = random.choices(
+                    ["normal", "S", "G", "M", "D"],
+                    weights=[50, 25, 12, 8, 5],
+                    k=1
+                )[0]
 
-                new_enemy = EnemyLevel2(screen, ruta_enemigo)
+                new_enemy = EnemyLevel2(screen, tipo)
 
                 enemies.add(new_enemy)
                 all_sprites.add(new_enemy)
+        
             #----
 
             #---- FEATURE POWER UPS - GENERAR POWER UP ----
@@ -284,7 +293,8 @@ def gameloop(screen):
             pressed_keys = pygame.key.get_pressed()
 
             player.update(pressed_keys)
-            enemies.update()
+            enemies.update(player.rect.center, proyectiles_enemigos)
+            proyectiles_enemigos.update()
             crosshair.update()
 
             #---- FEATURE POWER UPS - ACTUALIZAR POWER UPS ----
@@ -339,6 +349,11 @@ def gameloop(screen):
         # TODO (2.5): Dibujar las balas en la ventana
         for bullet in player.bullets:
             screen.blit(bullet.image, bullet.rect)
+
+        #---- FEATURE NUEVOS ENEMIGOS - DIBUJAR PROYECTILES ----
+        for proyectil in proyectiles_enemigos:
+            screen.blit(proyectil.image, proyectil.rect)
+        #----
 
         #---- FEATURE VIDAS DEL JUGADOR - HUD DE CORAZONES ----
         for i in range(player.vidas):
@@ -410,6 +425,37 @@ def gameloop(screen):
         #----
 
         if not pausado:
+            #---- FEATURE NUEVOS ENEMIGOS - IMPACTO PROYECTILES ----
+            impactos = pygame.sprite.spritecollide(player, proyectiles_enemigos, True)
+
+            for proyectil in impactos:
+
+                if proyectil.tipo == "M":
+
+                    player.aplicar_slow()
+
+                elif proyectil.tipo == "D":
+
+                    if player.escudo:
+
+                        player.escudo = False
+                        player.actualizar_apariencia()
+
+                    else:
+
+                        sonido_damage.play()
+
+                        murio = player.recibir_dano()
+
+                        if murio:
+
+                            player.kill()
+
+                            pygame.mixer.music.stop()
+                            pygame.mouse.set_visible(True)
+
+                            return ("dead", estadistica)
+            #----
 
             #---- FEATURE POWER UPS - RECOGER POWER UP ----
             powerups_recogidos = pygame.sprite.spritecollide(player, powerups, True)
@@ -455,7 +501,21 @@ def gameloop(screen):
             #----
 
             # TODO (2.6): Calcular colisiones entre balas y enemigos
-            colisiones_balas = pygame.sprite.groupcollide(player.bullets, enemies, True, True)
+            colisiones_balas = pygame.sprite.groupcollide(player.bullets, enemies, True, False)
+
+            if colisiones_balas:
+                sonido_hit.play()
+
+            for lista_enemigos in colisiones_balas.values():
+
+                for enemigo in lista_enemigos:
+
+                    if enemigo.alive():
+
+                        murio_enemigo = enemigo.recibir_dano()
+
+                        if murio_enemigo:
+                            estadistica += 5
 
             for lista_enemigos in colisiones_balas.values():
                 estadistica += len(lista_enemigos) * 5

@@ -23,6 +23,8 @@ from .enemy import Enemy
 from .enemy_level2 import EnemyLevel2
 #----
 
+from .enemy_projectile import EnemyProjectile
+
 from .player import Player
 
 #---- FEATURE POWER UPS - IMPORTAR POWER UP ----
@@ -33,5 +35,5 @@ from .powerup import PowerUp
 # ? from .nombre_del_archivo import NombreDeLaClase
 
 #---- FEATURE POWER UPS - AGREGAR POWER UP A ELEMENTS ----
-__all__ = ["Bullet", "Crosshair", "Enemy", "EnemyLevel2", "Player", "PowerUp"]
+__all__ = ["Bullet", "Crosshair", "Enemy", "EnemyLevel2", "EnemyProjectile", "Player", "PowerUp"]
 #----
