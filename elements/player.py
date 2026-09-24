@@ -18,6 +18,9 @@ JorgeShieldPNG_scaled = pygame.transform.scale(JorgeShieldPNG, (80, 80))
 JorgeRapidPNG = pygame.image.load("assets/jorge_rapid.png")
 JorgeRapidPNG_scaled = pygame.transform.scale(JorgeRapidPNG, (80, 80))
 
+JorgeShieldRapidPNG = pygame.image.load("assets/jorge_shield_rapid.png")
+JorgeShieldRapidPNG_scaled = pygame.transform.scale(JorgeShieldRapidPNG, (80, 80))
+
 JorgeReloadPNG = pygame.image.load("assets/jorge_reload.png")
 JorgeReloadPNG_scaled = pygame.transform.scale(JorgeReloadPNG, (80, 80))
 
@@ -27,8 +30,8 @@ JorgeReloadShieldPNG_scaled = pygame.transform.scale(JorgeReloadShieldPNG, (80, 
 JorgeReloadRapidPNG = pygame.image.load("assets/jorge_reload_rapid.png")
 JorgeReloadRapidPNG_scaled = pygame.transform.scale(JorgeReloadRapidPNG, (80, 80))
 
-JorgeShieldRapidPNG = pygame.image.load("assets/jorge_shield_rapid.png")
-JorgeShieldRapidPNG_scaled = pygame.transform.scale(JorgeShieldRapidPNG, (80, 80))
+JorgeReloadShieldRapidPNG = pygame.image.load("assets/jorge_reload_shield_rapid.png")
+JorgeReloadShieldRapidPNG_scaled = pygame.transform.scale(JorgeReloadShieldRapidPNG, (80, 80))
 #----
 
 #---- FEATURE HABILIDAD ESPECIAL - SPRITES DE SPRINT ----
@@ -37,6 +40,12 @@ JorgeSprintPNG_scaled = pygame.transform.scale(JorgeSprintPNG, (80, 80))
 
 JorgeShieldSprintPNG = pygame.image.load("assets/jorge_shield_sprint.png")
 JorgeShieldSprintPNG_scaled = pygame.transform.scale(JorgeShieldSprintPNG, (80, 80))
+
+JorgeRapidSprintPNG = pygame.image.load("assets/jorge_rapid_sprint.png")
+JorgeRapidSprintPNG_scaled = pygame.transform.scale(JorgeRapidSprintPNG, (80, 80))
+
+JorgeShieldRapidSprintPNG = pygame.image.load("assets/jorge_shield_rapid_sprint.png")
+JorgeShieldRapidSprintPNG_scaled = pygame.transform.scale(JorgeShieldRapidSprintPNG, (80, 80))
 #----
 
 
@@ -215,7 +224,10 @@ class Player(pygame.sprite.Sprite):
 
         centro = self.rect.center
 
-        if self.sobrecalentado and self.escudo:
+        if self.sobrecalentado and self.escudo and self.rapid_fire:
+            self.image = JorgeReloadShieldRapidPNG_scaled
+
+        elif self.sobrecalentado and self.escudo:
             self.image = JorgeReloadShieldPNG_scaled
 
         elif self.sobrecalentado and self.rapid_fire:
@@ -224,8 +236,14 @@ class Player(pygame.sprite.Sprite):
         elif self.sobrecalentado:
             self.image = JorgeReloadPNG_scaled
 
-        elif self.rapid_fire and self.escudo:
+        elif self.escudo and self.rapid_fire and self.sprint:
+            self.image = JorgeShieldRapidSprintPNG_scaled
+
+        elif self.escudo and self.rapid_fire:
             self.image = JorgeShieldRapidPNG_scaled
+
+        elif self.rapid_fire and self.sprint:
+            self.image = JorgeRapidSprintPNG_scaled
 
         elif self.rapid_fire:
             self.image = JorgeRapidPNG_scaled
