@@ -5,6 +5,7 @@ import os
 ASSETS = {
     "background": [
         "assets/background.png",
+        "assets/Inicio_Back.png",
         "assets/background_2.png",
         "assets/background_3.png",
         "assets/background_4.png",
@@ -26,12 +27,17 @@ ASSETS = {
         "assets/bullet_4.png",
         "assets/bullet_5.png",
     ],
+
+    "Inicio_Back": [
+        "assets/Inicio_Back.png"
+    ]
 }
 
 seleccion = {
     "background": 0,
     "bug": 0,
     "bullet": 0,
+    "Inicio_Back": 0
 }
 #----
 

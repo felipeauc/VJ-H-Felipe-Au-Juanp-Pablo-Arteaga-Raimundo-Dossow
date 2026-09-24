@@ -93,7 +93,7 @@ def gameloop(screen):
         # Limpiar pantalla (fondo negro)
 
         #---- FEATURE MENU INICIO - FONDO PERSONALIZADO ----
-        background = pygame.image.load(customization.obtener_asset("background")).convert()
+        background = pygame.image.load(customization.obtener_asset("Inicio_Back")).convert()
         background = pygame.transform.scale(background, (screen.get_width(), screen.get_height()))
         screen.blit(background, (0, 0))
 
@@ -105,24 +105,6 @@ def gameloop(screen):
         #---- FEATURE MENU INICIO - TITULO ----
         titulo = font_titulo.render("JORGE VS BUGS", True, (255, 215, 80))
         screen.blit(titulo, titulo.get_rect(center=(screen.get_width() // 2, 180)))
-        #----
-
-        #---- FEATURE PROGRESION DE NIVELES - BOTONES DEL MENU ----
-        if seleccionando_nivel:
-
-            botones = [
-                (boton_nivel1, "NIVEL 1"),
-                (boton_nivel2, "NIVEL 2"),
-                (boton_volver, "VOLVER"),
-            ]
-
-        else:
-
-            botones = [
-                (boton_jugar, "JUGAR"),
-                (boton_tienda, "TIENDA"),
-                (boton_salir, "SALIR"),
-            ]
         #----
 
         #---- FEATURE MENU INICIO - DIBUJAR BOTONES ----
