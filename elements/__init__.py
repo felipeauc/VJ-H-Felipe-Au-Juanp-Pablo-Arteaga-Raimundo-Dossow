@@ -24,9 +24,13 @@ from .player import Player
 from .powerup import PowerUp
 #----
 
+#---- FEATURE COOPERATIVO - IMPORTAR JUGADOR 2 ----
+from .player2 import Player2
+#----
+
 # ? Para agregar mas elementos, solo hay que importarlos y agregarlos a la lista __all__.
 # ? from .nombre_del_archivo import NombreDeLaClase
 
 #---- FEATURE POWER UPS - AGREGAR POWER UP A ELEMENTS ----
-__all__ = ["Bullet", "Crosshair", "Enemy", "Player", "PowerUp"]
+__all__ = ["Bullet", "Crosshair", "Enemy", "Player", "PowerUp", "Player2"]
 #----

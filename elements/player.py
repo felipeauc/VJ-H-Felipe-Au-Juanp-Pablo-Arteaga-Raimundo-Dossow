@@ -112,7 +112,7 @@ class Player(pygame.sprite.Sprite):
 
         #---- FEATURE HABILIDAD ESPECIAL - VELOCIDAD CON SHIFT ----
         moviendose = pressed_keys[K_w] or pressed_keys[K_s] or pressed_keys[K_a] or pressed_keys[K_d]
-        shift = pressed_keys[K_LSHIFT] or pressed_keys[K_RSHIFT]
+        shift = pressed_keys[K_LSHIFT]
 
         self.sprint = shift and moviendose and not self.sobrecalentado
 

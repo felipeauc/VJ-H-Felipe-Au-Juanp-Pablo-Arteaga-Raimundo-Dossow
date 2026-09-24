@@ -2,11 +2,11 @@ if __name__ == "__main__":
     raise RuntimeError("\033c❌ ESTE ARCHIVO NO DEBE EJECUTARSE. EJECUTA main.py")
 
 import pygame
-from pygame.locals import K_ESCAPE, K_SPACE, KEYDOWN, MOUSEBUTTONDOWN, QUIT
+from pygame.locals import K_ESCAPE, K_SPACE, KEYDOWN, MOUSEBUTTONDOWN, QUIT, K_RSHIFT
 
 import customization
 
-from elements import Crosshair, Enemy, Player, PowerUp
+from elements import Crosshair, Enemy, Player, PowerUp, Player2
 
 
 #---- FEATURE MENU PAUSA - CAMBIAR MODO DE PANTALLA ----
@@ -56,6 +56,11 @@ def gameloop(screen):
     enemies = pygame.sprite.Group()
     all_sprites = pygame.sprite.Group()
     all_sprites.add(player)
+
+    #---- FEATURE COOPERATIVO - CREAR JUGADOR 2 ----
+    player2 = Player2(screen)
+    all_sprites.add(player2)
+    #----
 
     #---- FEATURE POWER UPS - CREAR GRUPO DE POWER UPS ----
     powerups = pygame.sprite.Group()
@@ -152,6 +157,7 @@ def gameloop(screen):
                             player.fin_rapid_fire += tiempo_pausa
 
                         player.ultimo_dash += tiempo_pausa
+                        player2.ultima_embestida += tiempo_pausa
 
                         for i in range(len(estelas_dash)):
                             inicio, fin, tiempo_inicio = estelas_dash[i]
@@ -175,6 +181,7 @@ def gameloop(screen):
                             player.fin_rapid_fire += tiempo_pausa
 
                         player.ultimo_dash += tiempo_pausa
+                        player2.ultima_embestida += tiempo_pausa
 
                         for i in range(len(estelas_dash)):
                             inicio, fin, tiempo_inicio = estelas_dash[i]
@@ -226,10 +233,37 @@ def gameloop(screen):
                 if event.key == K_SPACE:
 
                     resultado_dash = player.dash(pygame.key.get_pressed())
-
+                    
                     if resultado_dash is not None:
-                        inicio, fin = resultado_dash
+                                            inicio, fin = resultado_dash
+                                            estelas_dash.append((inicio, fin, pygame.time.get_ticks()))
+                #----
+
+                #---- FEATURE COOPERATIVO - EMBESTIDA JUGADOR 2 ----
+                if event.key == K_RSHIFT:
+
+                    resultado_embestida = player2.embestida(pygame.key.get_pressed())
+
+                    if resultado_embestida is not None:
+                        inicio, fin = resultado_embestida
                         estelas_dash.append((inicio, fin, pygame.time.get_ticks()))
+
+                        golpeados = 0
+
+                        for paso in range(11):
+
+                            x = inicio[0] + (fin[0] - inicio[0]) * paso / 10
+                            y = inicio[1] + (fin[1] - inicio[1]) * paso / 10
+                            player2.rect.center = (x, y)
+
+                            enemigos_golpeados = pygame.sprite.spritecollide(player2, enemies, True)
+                            golpeados += len(enemigos_golpeados)
+
+                        player2.rect.center = fin
+
+                        if golpeados > 0:
+                            estadistica += golpeados * 5
+                            sonido_hit.play()
                 #----
 
             # ? Generar enemigos
@@ -266,6 +300,7 @@ def gameloop(screen):
             pressed_keys = pygame.key.get_pressed()
 
             player.update(pressed_keys)
+            player2.update(pressed_keys)
             enemies.update()
             crosshair.update()
 
@@ -373,6 +408,20 @@ def gameloop(screen):
         pygame.draw.rect(screen, (255, 200, 40), (mana_x, mana_y, int(mana_ancho * mana_dash), mana_alto), border_radius=4)
         #----
 
+        #---- FEATURE COOPERATIVO - HUD JUGADOR 2 ----
+        for i in range(player2.vidas):
+
+            x = screen.get_width() - 54 - i * 40
+            screen.blit(icono_corazon, (x, 65))
+
+        barra_x = screen.get_width() - 220
+        tiempo_embestida = tiempo_visual - player2.ultima_embestida
+        mana_embestida = min(1, tiempo_embestida / player2.cooldown_embestida)
+
+        pygame.draw.rect(screen, (30, 30, 35), (barra_x, 105, 200, 9), border_radius=4)
+        pygame.draw.rect(screen, (80, 180, 255), (barra_x, 105, int(200 * mana_embestida), 9), border_radius=4)
+
+
         #---- FEATURE POWER UPS - BARRA RAPID FIRE COMPACTA ----
         if player.rapid_fire:
 
@@ -434,6 +483,26 @@ def gameloop(screen):
                         pygame.mouse.set_visible(True)
 
                         return ("dead", estadistica)
+            #----
+
+            #---- FEATURE COOPERATIVO - DAÑO JUGADOR 2 ----
+            enemigos_tocando_2 = pygame.sprite.spritecollide(player2, enemies, False)
+
+            if enemigos_tocando_2:
+
+                enemigos_tocando_2[0].kill()
+                sonido_damage.play()
+
+                murio_2 = player2.recibir_dano()
+
+                if murio_2:
+
+                    player2.kill()
+
+                    pygame.mixer.music.stop()
+                    pygame.mouse.set_visible(True)
+
+                    return ("dead", estadistica)
             #----
 
             # TODO (2.6): Calcular colisiones entre balas y enemigos
