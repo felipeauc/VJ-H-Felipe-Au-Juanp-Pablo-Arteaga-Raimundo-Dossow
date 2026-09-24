@@ -67,7 +67,7 @@ while running:
             if isinstance(resultado, tuple) and resultado[0] == "dead":
                 estadistica = resultado[1]
                 
-                if estadistica >= 500:
+                if estadistica >= 0:
                     nivel_2_desbloqueado = True
 
                 resultado_muerte = death_scene.gameloop(screen, estadistica)
