@@ -56,16 +56,14 @@ while running:
                 continue
             #----
 
-            if resultado == "dead":
+            if resultado[0] == "dead":
 
-                resultado_muerte = death_scene.gameloop(screen)
-
+                estadistica = resultado[1]
+                resultado_muerte = death_scene.gameloop(screen, estadistica)
                 if resultado_muerte == "retry":
                     continue
-
                 if resultado_muerte == "quit":
                     running = False
-
                 jugando = False
 
             elif resultado == "quit":

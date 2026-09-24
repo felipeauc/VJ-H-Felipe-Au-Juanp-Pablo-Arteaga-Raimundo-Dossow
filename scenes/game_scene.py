@@ -113,6 +113,10 @@ def gameloop(screen):
     font_boton = pygame.font.Font(None, 35)
     #----
 
+    estadistica = 0
+    ultimo_segundo = pygame.time.get_ticks()
+    font_puntos = pygame.font.Font(None, 45)
+
     # ? Crear el reloj del juego
     clock = pygame.time.Clock()
 
@@ -268,6 +272,11 @@ def gameloop(screen):
             #---- FEATURE POWER UPS - ACTUALIZAR POWER UPS ----
             powerups.update()
             #----
+            
+            ahora_puntos = pygame.time.get_ticks()
+            if ahora_puntos - ultimo_segundo >= 1000:
+                estadistica += 1
+                ultimo_segundo += 1000
 
         #---- FEATURE MENU PAUSA - TIEMPO VISUAL CONGELADO ----
         if pausado:
@@ -323,6 +332,12 @@ def gameloop(screen):
             else:
                 screen.blit(icono_corazon, (x, 20))
         #----
+
+        sombra_puntos = font_puntos.render(f"PUNTOS: {estadistica}", True, (0, 0, 0))
+        texto_puntos = font_puntos.render(f"PUNTOS: {estadistica}", True, (255, 255, 255))  
+        pos_x_puntos = screen.get_width() - texto_puntos.get_width() - 20
+        screen.blit(sombra_puntos, (pos_x_puntos + 2, 22))
+        screen.blit(texto_puntos, (pos_x_puntos, 20))
 
         #---- FEATURE POWER UPS - HUD DE MUNICION CON FLECHAS ----
         inicio_x = 20
@@ -418,11 +433,14 @@ def gameloop(screen):
                         pygame.mixer.music.stop()
                         pygame.mouse.set_visible(True)
 
-                        return "dead"
+                        return ("dead", estadistica)
             #----
 
             # TODO (2.6): Calcular colisiones entre balas y enemigos
             colisiones_balas = pygame.sprite.groupcollide(player.bullets, enemies, True, True)
+
+            for lista_enemigos in colisiones_balas.values():
+                estadistica += len(lista_enemigos) * 5
 
             #---- FEATURE MUSICA Y SONIDO - HIT DE FLECHA CONTRA BUG ----
             if colisiones_balas:

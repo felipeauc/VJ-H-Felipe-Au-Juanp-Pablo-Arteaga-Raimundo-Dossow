@@ -4,7 +4,7 @@ if __name__ == "__main__":
 import pygame
 import sys
 
-def gameloop(screen, estadistica=0):
+def gameloop(screen, estadistica):
     try:
         fondo = pygame.image.load("assets/END.jpg").convert()
     except:
@@ -12,7 +12,7 @@ def gameloop(screen, estadistica=0):
         
     fondo = pygame.transform.scale(fondo, (screen.get_width(), screen.get_height()))
 
-    font_numero = pygame.font.SysFont(None, 45)
+    font_numero = pygame.font.SysFont(None, 55)
     font_boton = pygame.font.SysFont(None, 50)
     
     texto_stat_num = font_numero.render(str(estadistica), True, (180, 180, 180))
