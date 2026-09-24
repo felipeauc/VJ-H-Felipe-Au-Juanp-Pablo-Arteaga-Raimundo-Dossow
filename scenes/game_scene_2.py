@@ -40,7 +40,7 @@ def gameloop(screen):
     #----
 
     #---- FEATURE TIENDA - FONDO SELECCIONADO ----
-    background_image = pygame.image.load(customization.obtener_asset("background")).convert()
+    background_image = pygame.image.load("assets/background_n2.png").convert()
     background_image = pygame.transform.scale(background_image, (screen.get_width(), screen.get_height()))
     #----
 

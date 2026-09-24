@@ -85,13 +85,8 @@ while running:
             if isinstance(resultado, tuple) and resultado[0] == "dead":
 
                 estadistica = resultado[1]
-                hubo_cambios = False
                 
-                if estadistica > max_puntaje:
-                    max_puntaje = estadistica
-                    hubo_cambios = True
-
-                if estadistica >= 500 and not nivel_2_desbloqueado:
+                if estadistica >= 500:
                     nivel_2_desbloqueado = True
                     hubo_cambios = True
 
