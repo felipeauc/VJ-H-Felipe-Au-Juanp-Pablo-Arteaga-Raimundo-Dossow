@@ -18,6 +18,8 @@ SCREEN_HEIGHT = 768
 # ? Creamos nuestro objeto pantalla
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
+nivel_2_desbloqueado = False
+
 # ? Aqui se ejecutaran las escenas del juego en orden
 running = True
 
@@ -25,7 +27,7 @@ while running:
 
     screen = pygame.display.get_surface()
 
-    resultado_menu = basic_scene.gameloop(screen)
+    resultado_menu = basic_scene.gameloop(screen, nivel_2_desbloqueado)
 
     if resultado_menu == "quit":
         break
@@ -65,8 +67,11 @@ while running:
             #----
 
             if isinstance(resultado, tuple) and resultado[0] == "dead":
-
                 estadistica = resultado[1]
+                
+                if estadistica >= 500:
+                    nivel_2_desbloqueado = True
+
                 resultado_muerte = death_scene.gameloop(screen, estadistica)
 
                 if resultado_muerte == "retry":
