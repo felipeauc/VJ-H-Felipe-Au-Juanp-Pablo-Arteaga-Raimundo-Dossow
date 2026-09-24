@@ -2,8 +2,14 @@ import pygame
 
 from scenes import basic_scene, game_scene, death_scene, shop_scene
 
+
 # ? Inicializamos pygame
 pygame.init()
+
+#---- FEATURE MUSICA Y SONIDO - INICIALIZAR AUDIO ----
+if not pygame.mixer.get_init():
+    pygame.mixer.init()
+#----
 
 # ? Definimos las medidas de nuestra pantalla
 SCREEN_WIDTH = 1024

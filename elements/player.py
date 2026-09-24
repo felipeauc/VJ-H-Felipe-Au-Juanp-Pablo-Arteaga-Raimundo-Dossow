@@ -100,6 +100,14 @@ class Player(pygame.sprite.Sprite):
         self.ultimo_dash = -self.cooldown_dash
         #----
 
+        #---- FEATURE MUSICA Y SONIDO - SONIDOS DEL JUGADOR ----
+        self.sonido_disparo = pygame.mixer.Sound("assets/arrow.wav")
+        self.sonido_dash = pygame.mixer.Sound("assets/dash.wav")
+
+        self.sonido_disparo.set_volume(0.55)
+        self.sonido_dash.set_volume(0.70)
+        #----
+
     def update(self, pressed_keys):
 
         #---- FEATURE HABILIDAD ESPECIAL - VELOCIDAD CON SHIFT ----
@@ -110,6 +118,7 @@ class Player(pygame.sprite.Sprite):
 
         if self.sprint:
             velocidad = self.velocidad_rapida
+
         else:
             velocidad = self.velocidad_normal
         #----
@@ -159,6 +168,7 @@ class Player(pygame.sprite.Sprite):
 
         #---- FEATURE POWER UPS - RAPID FIRE ----
         if self.rapid_fire:
+
             ahora = pygame.time.get_ticks()
 
             if ahora - self.ultimo_disparo_rapid_fire < self.cooldown_rapid_fire:
@@ -167,6 +177,7 @@ class Player(pygame.sprite.Sprite):
             self.ultimo_disparo_rapid_fire = ahora
 
         else:
+
             if self.sobrecalentado:
                 return
         #----
@@ -183,8 +194,13 @@ class Player(pygame.sprite.Sprite):
         bullet = Bullet(self.rect.center, direction, self.screen_width, self.screen_height, self.rapid_fire)
         self.bullets.add(bullet)
 
+        #---- FEATURE MUSICA Y SONIDO - SONIDO DE DISPARO ----
+        self.sonido_disparo.play()
+        #----
+
         #---- FEATURE POWER UPS - RAPID FIRE SIN SOBRECALENTAMIENTO ----
         if not self.rapid_fire:
+
             self.disparos += 1
 
             if self.disparos >= self.max_disparos:
@@ -196,6 +212,7 @@ class Player(pygame.sprite.Sprite):
 
     #---- FEATURE VIDAS DEL JUGADOR - RECIBIR DAÑO ----
     def recibir_dano(self):
+
         self.vidas -= 1
 
         if self.vidas <= 0:
@@ -302,6 +319,10 @@ class Player(pygame.sprite.Sprite):
 
         posicion_final = self.rect.center
         self.ultimo_dash = ahora
+
+        #---- FEATURE MUSICA Y SONIDO - SONIDO DASH ----
+        self.sonido_dash.play()
+        #----
 
         return posicion_inicial, posicion_final
     #----
