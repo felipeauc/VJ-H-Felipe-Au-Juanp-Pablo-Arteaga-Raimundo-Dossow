@@ -7,7 +7,7 @@ from pygame.locals import K_ESCAPE, KEYDOWN, MOUSEBUTTONDOWN, QUIT
 import customization
 
 
-def gameloop(screen):
+def gameloop(screen, nivel_2_desbloqueado=False):
 
     # Inicializamos el reloj
     clock = pygame.time.Clock()
