@@ -82,7 +82,7 @@ def gameloop(screen, nivel_2_desbloqueado=False):
                         if boton_nivel1.collidepoint(event.pos):
                             return "level1"
 
-                        elif boton_nivel2.collidepoint(event.pos):
+                        elif boton_nivel2.collidepoint(event.pos) and nivel_2_desbloqueado:
                             return "level2"
 
                         elif boton_volver.collidepoint(event.pos):
@@ -105,11 +105,16 @@ def gameloop(screen, nivel_2_desbloqueado=False):
         #---- FEATURE PROGRESION DE NIVELES - BOTONES DEL MENU ----
         if seleccionando_nivel:
 
+            if nivel_2_desbloqueado:
+                texto_n2 = "NIVEL 2" 
+            else:
+                texto_n2= "NIVEL 2 (500 pts)"
+
             botones = [
                 (boton_nivel1, "NIVEL 1"),
-                (boton_nivel2, "NIVEL 2"),
+                (boton_nivel2, texto_n2),
                 (boton_volver, "VOLVER"),
-            ]
+        ]
 
         else:
 
@@ -124,16 +129,22 @@ def gameloop(screen, nivel_2_desbloqueado=False):
 
         for boton, texto in botones:
 
-            if boton.collidepoint(mouse):
-                color = (255, 205, 60)
-
+            if seleccionando_nivel and boton == boton_nivel2 and not nivel_2_desbloqueado:
+                color = (30, 30, 30)
+                borde = (80, 80, 80)
+                color_texto = (120, 120, 120)
             else:
-                color = (40, 45, 55)
+                color_texto = (255, 255, 255)
+                borde = (255, 215, 80)
+
+                if boton.collidepoint(mouse):
+                    color = (255, 205, 60)
+                else:
+                    color = (40, 45, 55)
 
             pygame.draw.rect(screen, color, boton, border_radius=10)
-            pygame.draw.rect(screen, (255, 215, 80), boton, 3, border_radius=10)
-
-            texto_render = font.render(texto, True, (255, 255, 255))
+            pygame.draw.rect(screen, borde, boton, 3, border_radius=10)
+            texto_render = font.render(texto, True, color_texto)
             screen.blit(texto_render, texto_render.get_rect(center=boton.center))
         #----
 

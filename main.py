@@ -33,7 +33,6 @@ while running:
         break
 
     if resultado_menu == "shop":
-
         screen = pygame.display.get_surface()
         resultado_tienda = shop_scene.gameloop(screen)
 
@@ -54,7 +53,6 @@ while running:
 
             if nivel_actual == "level1":
                 resultado = game_scene.gameloop(screen)
-
             else:
                 resultado = game_scene_2.gameloop(screen)
 
@@ -76,7 +74,6 @@ while running:
 
                 if resultado_muerte == "retry":
                     continue
-
                 if resultado_muerte == "quit":
                     running = False
 
