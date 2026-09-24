@@ -6,7 +6,7 @@ from pygame.locals import K_ESCAPE, K_SPACE, KEYDOWN, MOUSEBUTTONDOWN, QUIT
 
 import customization
 
-from elements import Crosshair, Enemy, Player, PowerUp
+from elements import Crosshair, EnemyLevel2, Player, PowerUp
 
 
 #---- FEATURE MENU PAUSA - CAMBIAR MODO DE PANTALLA ----
@@ -57,13 +57,27 @@ def gameloop(screen):
     all_sprites = pygame.sprite.Group()
     all_sprites.add(player)
 
+    #---- FEATURE PROGRESION DE NIVELES - DRAGONES NIVEL 2 ----
+    enemigos_nivel2 = [
+        "assets/bug_D.png",
+        "assets/bug_G.png",
+        "assets/bug_M.png",
+        "assets/bug_S.png",
+    ]
+
+    indice_enemigo = 0
+    #----
+
     #---- FEATURE POWER UPS - CREAR GRUPO DE POWER UPS ----
     powerups = pygame.sprite.Group()
     #----
 
     # ? Crear el generador de enemigos
     ADDENEMY = pygame.USEREVENT + 1
-    pygame.time.set_timer(ADDENEMY, 600)
+
+    #---- FEATURE PROGRESION DE NIVELES - DIFICULTAD NIVEL 2 ----
+    pygame.time.set_timer(ADDENEMY, 450)
+    #----
 
     #---- FEATURE POWER UPS - CREAR GENERADOR DE POWER UPS ----
     ADDPOWERUP = pygame.USEREVENT + 2
@@ -120,7 +134,7 @@ def gameloop(screen):
     # ? Crear el reloj del juego
     clock = pygame.time.Clock()
 
-    running = True  # variable booleana para manejar el loop
+    running = True
 
     # * Loop principal del juego, todo lo que ocurre en el juego se hace dentro de este loop
     while running:
@@ -210,7 +224,7 @@ def gameloop(screen):
                 continue
             #----
 
-            if event.type == KEYDOWN:  # se presiono una tecla?
+            if event.type == KEYDOWN:
 
                 #---- FEATURE MENU PAUSA - ACTIVAR PAUSA ----
                 if event.key == K_ESCAPE:
@@ -232,13 +246,17 @@ def gameloop(screen):
                         estelas_dash.append((inicio, fin, pygame.time.get_ticks()))
                 #----
 
-            # ? Generar enemigos
+            #---- FEATURE PROGRESION DE NIVELES - GENERAR DRAGONES NIVEL 2 ----
             elif event.type == ADDENEMY:
 
-                new_enemy = Enemy(screen)
+                ruta_enemigo = enemigos_nivel2[indice_enemigo]
+                indice_enemigo = (indice_enemigo + 1) % len(enemigos_nivel2)
+
+                new_enemy = EnemyLevel2(screen, ruta_enemigo)
 
                 enemies.add(new_enemy)
                 all_sprites.add(new_enemy)
+            #----
 
             #---- FEATURE POWER UPS - GENERAR POWER UP ----
             elif event.type == ADDPOWERUP:
@@ -262,7 +280,7 @@ def gameloop(screen):
                 player.shoot(pygame.mouse.get_pos())
             #----
 
-            # ? Actualizar el estado interno de los sprites (posiciones, etc)
+            # ? Actualizar el estado interno de los sprites
             pressed_keys = pygame.key.get_pressed()
 
             player.update(pressed_keys)
@@ -404,8 +422,6 @@ def gameloop(screen):
 
                 player.activar_powerup(powerup.tipo)
             #----
-
-            # ? Calcular colisiones entre jugador y enemigos
 
             #---- FEATURE VIDAS DEL JUGADOR - DAÑO DE ENEMIGOS ----
             enemigos_tocando = pygame.sprite.spritecollide(player, enemies, False)

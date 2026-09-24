@@ -1,6 +1,6 @@
 import pygame
 
-from scenes import basic_scene, game_scene, death_scene, shop_scene
+from scenes import basic_scene, game_scene, game_scene_2, death_scene, shop_scene
 
 
 # ? Inicializamos pygame
@@ -40,14 +40,22 @@ while running:
 
         continue
 
-    if resultado_menu == "play":
+    #---- FEATURE PROGRESION DE NIVELES - ELEGIR NIVEL ----
+    if resultado_menu == "level1" or resultado_menu == "level2":
 
+        nivel_actual = resultado_menu
         jugando = True
 
         while jugando:
 
             screen = pygame.display.get_surface()
-            resultado = game_scene.gameloop(screen)
+
+            if nivel_actual == "level1":
+                resultado = game_scene.gameloop(screen)
+
+            else:
+                resultado = game_scene_2.gameloop(screen)
+
             screen = pygame.display.get_surface()
 
             #---- FEATURE MENU PAUSA - VOLVER AL MENU PRINCIPAL ----
@@ -56,18 +64,22 @@ while running:
                 continue
             #----
 
-            if resultado[0] == "dead":
+            if isinstance(resultado, tuple) and resultado[0] == "dead":
 
                 estadistica = resultado[1]
                 resultado_muerte = death_scene.gameloop(screen, estadistica)
+
                 if resultado_muerte == "retry":
                     continue
+
                 if resultado_muerte == "quit":
                     running = False
+
                 jugando = False
 
             elif resultado == "quit":
                 running = False
                 jugando = False
+    #----
 
 pygame.quit()

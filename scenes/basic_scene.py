@@ -30,14 +30,32 @@ def gameloop(screen):
     boton_salir.center = (screen.get_width() // 2, 540)
     #----
 
+    #---- FEATURE PROGRESION DE NIVELES - SELECCION DE NIVEL ----
+    seleccionando_nivel = False
+
+    boton_nivel1 = pygame.Rect(0, 0, 280, 65)
+    boton_nivel2 = pygame.Rect(0, 0, 280, 65)
+    boton_volver = pygame.Rect(0, 0, 280, 65)
+
+    boton_nivel1.center = (screen.get_width() // 2, 360)
+    boton_nivel2.center = (screen.get_width() // 2, 450)
+    boton_volver.center = (screen.get_width() // 2, 540)
+    #----
+
     # Iniciamos el loop principal de la escena inicial
     while running:
 
         for event in pygame.event.get():
 
             if event.type == KEYDOWN:
+
                 if event.key == K_ESCAPE:
-                    return "quit"
+
+                    if seleccionando_nivel:
+                        seleccionando_nivel = False
+
+                    else:
+                        return "quit"
 
             elif event.type == QUIT:
                 return "quit"
@@ -47,14 +65,29 @@ def gameloop(screen):
 
                 if event.button == 1:
 
-                    if boton_jugar.collidepoint(event.pos):
-                        return "play"
+                    if not seleccionando_nivel:
 
-                    if boton_tienda.collidepoint(event.pos):
-                        return "shop"
+                        if boton_jugar.collidepoint(event.pos):
+                            seleccionando_nivel = True
 
-                    if boton_salir.collidepoint(event.pos):
-                        return "quit"
+                        elif boton_tienda.collidepoint(event.pos):
+                            return "shop"
+
+                        elif boton_salir.collidepoint(event.pos):
+                            return "quit"
+
+                    else:
+
+                        #---- FEATURE PROGRESION DE NIVELES - ELEGIR NIVEL ----
+                        if boton_nivel1.collidepoint(event.pos):
+                            return "level1"
+
+                        elif boton_nivel2.collidepoint(event.pos):
+                            return "level2"
+
+                        elif boton_volver.collidepoint(event.pos):
+                            seleccionando_nivel = False
+                        #----
             #----
 
         # Limpiar pantalla (fondo negro)
@@ -74,17 +107,32 @@ def gameloop(screen):
         screen.blit(titulo, titulo.get_rect(center=(screen.get_width() // 2, 180)))
         #----
 
+        #---- FEATURE PROGRESION DE NIVELES - BOTONES DEL MENU ----
+        if seleccionando_nivel:
+
+            botones = [
+                (boton_nivel1, "NIVEL 1"),
+                (boton_nivel2, "NIVEL 2"),
+                (boton_volver, "VOLVER"),
+            ]
+
+        else:
+
+            botones = [
+                (boton_jugar, "JUGAR"),
+                (boton_tienda, "TIENDA"),
+                (boton_salir, "SALIR"),
+            ]
+        #----
+
         #---- FEATURE MENU INICIO - DIBUJAR BOTONES ----
         mouse = pygame.mouse.get_pos()
 
-        for boton, texto in [
-            (boton_jugar, "JUGAR"),
-            (boton_tienda, "TIENDA"),
-            (boton_salir, "SALIR"),
-        ]:
+        for boton, texto in botones:
 
             if boton.collidepoint(mouse):
                 color = (255, 205, 60)
+
             else:
                 color = (40, 45, 55)
 
