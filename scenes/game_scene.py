@@ -56,17 +56,23 @@ def gameloop(screen):
     pygame.time.set_timer(ADDPOWERUP, 8000)
     #----
 
-    #---- FEATURE TIENDA - ICONO DE MUNICION SELECCIONADO ----
+    #---- FEATURE POWER UPS - ICONOS DE MUNICION ----
     icono_flecha = pygame.image.load(customization.obtener_asset("bullet")).convert_alpha()
     icono_flecha = pygame.transform.scale(icono_flecha, (44, 16))
 
     icono_flecha_sombra = icono_flecha.copy()
     icono_flecha_sombra.fill((0, 0, 0, 255), special_flags=pygame.BLEND_RGBA_MULT)
+
+    icono_flecha_rapid = pygame.image.load("assets/bullet_rapid_fire.png").convert_alpha()
+    icono_flecha_rapid = pygame.transform.scale(icono_flecha_rapid, (44, 16))
     #----
 
-    #---- FEATURE VIDAS DEL JUGADOR - ICONO CORAZON ----
+    #---- FEATURE VIDAS DEL JUGADOR - ICONOS CORAZON ----
     icono_corazon = pygame.image.load("assets/heart.png").convert_alpha()
     icono_corazon = pygame.transform.scale(icono_corazon, (34, 34))
+
+    icono_corazon_shield = pygame.image.load("assets/heart_shield.png").convert_alpha()
+    icono_corazon_shield = pygame.transform.scale(icono_corazon_shield, (34, 34))
     #----
 
     #---- FEATURE HABILIDAD ESPECIAL - ESTELAS DASH ----
@@ -262,7 +268,7 @@ def gameloop(screen):
 
         #---- FEATURE POWER UPS - HUD DE MUNICION CON FLECHAS ----
         inicio_x = 20
-        inicio_y = 20
+        inicio_y = 62
         separacion = 8
         ancho_icono = icono_flecha.get_width()
 
@@ -272,7 +278,7 @@ def gameloop(screen):
             posicion_icono = (x, inicio_y)
 
             if player.rapid_fire:
-                screen.blit(icono_flecha, posicion_icono)
+                screen.blit(icono_flecha_rapid, posicion_icono)
 
             elif i >= player.max_disparos - player.disparos:
                 screen.blit(icono_flecha_sombra, posicion_icono)
@@ -283,8 +289,14 @@ def gameloop(screen):
 
         #---- FEATURE VIDAS DEL JUGADOR - HUD DE CORAZONES ----
         for i in range(player.vidas):
+
             x = 20 + i * 40
-            screen.blit(icono_corazon, (x, 55))
+
+            if player.escudo:
+                screen.blit(icono_corazon_shield, (x, 20))
+
+            else:
+                screen.blit(icono_corazon, (x, 20))
         #----
 
         #---- FEATURE HABILIDAD ESPECIAL - BARRA DE MANA DASH ----

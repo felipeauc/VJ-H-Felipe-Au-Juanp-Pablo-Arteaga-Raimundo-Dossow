@@ -1,13 +1,12 @@
 if __name__ == "__main__":
     raise RuntimeError("\033c❌ ESTE ARCHIVO NO DEBE EJECUTARSE. EJECUTA main.py")
 
-import math
-
 import pygame
 from pygame.locals import K_a, K_d, K_s, K_w, K_LSHIFT, K_RSHIFT
 from pygame.math import Vector2
 
 from .bullet import Bullet
+
 
 JorgePNG = pygame.image.load("assets/jorge.png")
 JorgePNG_scaled = pygame.transform.scale(JorgePNG, (80, 80))
@@ -19,8 +18,34 @@ JorgeShieldPNG_scaled = pygame.transform.scale(JorgeShieldPNG, (80, 80))
 JorgeRapidPNG = pygame.image.load("assets/jorge_rapid.png")
 JorgeRapidPNG_scaled = pygame.transform.scale(JorgeRapidPNG, (80, 80))
 
+JorgeShieldRapidPNG = pygame.image.load("assets/jorge_shield_rapid.png")
+JorgeShieldRapidPNG_scaled = pygame.transform.scale(JorgeShieldRapidPNG, (80, 80))
+
 JorgeReloadPNG = pygame.image.load("assets/jorge_reload.png")
 JorgeReloadPNG_scaled = pygame.transform.scale(JorgeReloadPNG, (80, 80))
+
+JorgeReloadShieldPNG = pygame.image.load("assets/jorge_reload_shield.png")
+JorgeReloadShieldPNG_scaled = pygame.transform.scale(JorgeReloadShieldPNG, (80, 80))
+
+JorgeReloadRapidPNG = pygame.image.load("assets/jorge_reload_rapid.png")
+JorgeReloadRapidPNG_scaled = pygame.transform.scale(JorgeReloadRapidPNG, (80, 80))
+
+JorgeReloadShieldRapidPNG = pygame.image.load("assets/jorge_reload_shield_rapid.png")
+JorgeReloadShieldRapidPNG_scaled = pygame.transform.scale(JorgeReloadShieldRapidPNG, (80, 80))
+#----
+
+#---- FEATURE HABILIDAD ESPECIAL - SPRITES DE SPRINT ----
+JorgeSprintPNG = pygame.image.load("assets/jorge_sprint.png")
+JorgeSprintPNG_scaled = pygame.transform.scale(JorgeSprintPNG, (80, 80))
+
+JorgeShieldSprintPNG = pygame.image.load("assets/jorge_shield_sprint.png")
+JorgeShieldSprintPNG_scaled = pygame.transform.scale(JorgeShieldSprintPNG, (80, 80))
+
+JorgeRapidSprintPNG = pygame.image.load("assets/jorge_rapid_sprint.png")
+JorgeRapidSprintPNG_scaled = pygame.transform.scale(JorgeRapidSprintPNG, (80, 80))
+
+JorgeShieldRapidSprintPNG = pygame.image.load("assets/jorge_shield_rapid_sprint.png")
+JorgeShieldRapidSprintPNG_scaled = pygame.transform.scale(JorgeShieldRapidSprintPNG, (80, 80))
 #----
 
 
@@ -66,6 +91,7 @@ class Player(pygame.sprite.Sprite):
         #---- FEATURE HABILIDAD ESPECIAL - VELOCIDAD CON SHIFT ----
         self.velocidad_normal = 4
         self.velocidad_rapida = 6
+        self.sprint = False
         #----
 
         #---- FEATURE HABILIDAD ESPECIAL - VARIABLES DASH ----
@@ -74,13 +100,16 @@ class Player(pygame.sprite.Sprite):
         self.ultimo_dash = -self.cooldown_dash
         #----
 
-
     def update(self, pressed_keys):
 
         #---- FEATURE HABILIDAD ESPECIAL - VELOCIDAD CON SHIFT ----
-        if pressed_keys[K_LSHIFT] or pressed_keys[K_RSHIFT]:
-            velocidad = self.velocidad_rapida
+        moviendose = pressed_keys[K_w] or pressed_keys[K_s] or pressed_keys[K_a] or pressed_keys[K_d]
+        shift = pressed_keys[K_LSHIFT] or pressed_keys[K_RSHIFT]
 
+        self.sprint = shift and moviendose and not self.sobrecalentado
+
+        if self.sprint:
+            velocidad = self.velocidad_rapida
         else:
             velocidad = self.velocidad_normal
         #----
@@ -126,7 +155,6 @@ class Player(pygame.sprite.Sprite):
         self.actualizar_apariencia()
         #----
 
-
     def shoot(self, mouse_pos):
 
         #---- FEATURE POWER UPS - RAPID FIRE ----
@@ -152,7 +180,7 @@ class Player(pygame.sprite.Sprite):
         direction = distance.normalize()
 
         # TODO (2.4): Crear bala y agregarla al grupo de balas
-        bullet = Bullet(self.rect.center, direction, self.screen_width, self.screen_height)
+        bullet = Bullet(self.rect.center, direction, self.screen_width, self.screen_height, self.rapid_fire)
         self.bullets.add(bullet)
 
         #---- FEATURE POWER UPS - RAPID FIRE SIN SOBRECALENTAMIENTO ----
@@ -166,7 +194,6 @@ class Player(pygame.sprite.Sprite):
 
         pass
 
-
     #---- FEATURE VIDAS DEL JUGADOR - RECIBIR DAÑO ----
     def recibir_dano(self):
         self.vidas -= 1
@@ -176,7 +203,6 @@ class Player(pygame.sprite.Sprite):
 
         return False
     #----
-
 
     #---- FEATURE POWER UPS - ACTIVAR POWER UP ----
     def activar_powerup(self, tipo):
@@ -193,27 +219,49 @@ class Player(pygame.sprite.Sprite):
         self.actualizar_apariencia()
     #----
 
-
     #---- FEATURE POWER UPS - CAMBIAR APARIENCIA DEL JUGADOR ----
     def actualizar_apariencia(self):
 
         centro = self.rect.center
 
-        if self.sobrecalentado:
+        if self.sobrecalentado and self.escudo and self.rapid_fire:
+            self.image = JorgeReloadShieldRapidPNG_scaled
+
+        elif self.sobrecalentado and self.escudo:
+            self.image = JorgeReloadShieldPNG_scaled
+
+        elif self.sobrecalentado and self.rapid_fire:
+            self.image = JorgeReloadRapidPNG_scaled
+
+        elif self.sobrecalentado:
             self.image = JorgeReloadPNG_scaled
+
+        elif self.escudo and self.rapid_fire and self.sprint:
+            self.image = JorgeShieldRapidSprintPNG_scaled
+
+        elif self.escudo and self.rapid_fire:
+            self.image = JorgeShieldRapidPNG_scaled
+
+        elif self.rapid_fire and self.sprint:
+            self.image = JorgeRapidSprintPNG_scaled
 
         elif self.rapid_fire:
             self.image = JorgeRapidPNG_scaled
 
+        elif self.escudo and self.sprint:
+            self.image = JorgeShieldSprintPNG_scaled
+
         elif self.escudo:
             self.image = JorgeShieldPNG_scaled
+
+        elif self.sprint:
+            self.image = JorgeSprintPNG_scaled
 
         else:
             self.image = JorgePNG_scaled
 
         self.rect = self.image.get_rect(center=centro)
     #----
-
 
     #---- FEATURE HABILIDAD ESPECIAL - DASH ----
     def dash(self, pressed_keys):
