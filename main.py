@@ -10,14 +10,33 @@ def cargar_progreso():
             lineas = archivo.readlines()
             max_puntaje = int(lineas[0].strip())
             nivel_2_desbloqueado = lineas[1].strip() == "True"
-            return max_puntaje, nivel_2_desbloqueado
+            coins = int(lineas[2].strip())
+            return max_puntaje, nivel_2_desbloqueado, coins
     except FileNotFoundError:
-        return 0, False
+        return 0, False, 0
 
-def guardar_progreso(max_puntaje, nivel_2_desbloqueado):
+def guardar_progreso(max_puntaje, nivel_2_desbloqueado, coins):
     with open(ARCHIVO_GUARDADO, "w") as archivo:
         archivo.write(f"{max_puntaje}\n")
         archivo.write(f"{nivel_2_desbloqueado}\n")
+        archivo.write(f"{coins}")
+
+ARCHIVO_ESTADISTICAS = "estadisticas.txt"
+
+def cargar_estadisticas():
+    try:
+        with open(ARCHIVO_ESTADISTICAS, "r") as archivo:
+            lineas = archivo.readlines()
+            nivel_vida = int(lineas[0].strip())
+            nivel_balas = int(lineas[1].strip())
+            return nivel_vida, nivel_balas
+    except FileNotFoundError:
+        return 0, 0
+
+def guardar_estadisticas(nivel_vida, nivel_balas):
+    with open(ARCHIVO_ESTADISTICAS, "w") as archivo:
+        archivo.write(f"{nivel_vida}\n")
+        archivo.write(f"{nivel_balas}")
 
 # ? Inicializamos pygame
 pygame.init()
@@ -34,7 +53,8 @@ SCREEN_HEIGHT = 768
 # ? Creamos nuestro objeto pantalla
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-max_puntaje, nivel_2_desbloqueado = cargar_progreso()
+max_puntaje, nivel_2_desbloqueado, coins = cargar_progreso()
+nivel_vida, nivel_balas = cargar_estadisticas()
 
 # ? Aqui se ejecutaran las escenas del juego en orden
 running = True
@@ -51,7 +71,9 @@ while running:
     if resultado_menu == "shop":
 
         screen = pygame.display.get_surface()
-        resultado_tienda = shop_scene.gameloop(screen)
+        resultado_tienda, coins, nivel_vida, nivel_balas = shop_scene.gameloop(screen, coins, nivel_vida, nivel_balas)
+        guardar_progreso(max_puntaje, nivel_2_desbloqueado, coins)
+        guardar_estadisticas(nivel_vida, nivel_balas)
 
         if resultado_tienda == "quit":
             break
@@ -85,15 +107,15 @@ while running:
             if isinstance(resultado, tuple) and resultado[0] == "dead":
 
                 estadistica = resultado[1]
+                coins += estadistica
+
+                if estadistica > max_puntaje:
+                    max_puntaje = estadistica
                 
                 if estadistica >= 500:
                     nivel_2_desbloqueado = True
-                    hubo_cambios = True
-                else:
-                    hubo_cambios = False
 
-                if hubo_cambios:
-                    guardar_progreso(max_puntaje, nivel_2_desbloqueado)
+                guardar_progreso(max_puntaje, nivel_2_desbloqueado, coins)
 
                 resultado_muerte = death_scene.gameloop(screen, estadistica)
 
