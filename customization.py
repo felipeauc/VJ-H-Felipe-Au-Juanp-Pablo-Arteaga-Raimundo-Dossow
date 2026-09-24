@@ -5,7 +5,6 @@ import os
 ASSETS = {
     "background": [
         "assets/background.png",
-        "assets/Inicio_Back.png",
         "assets/background_2.png",
         "assets/background_3.png",
         "assets/background_4.png",

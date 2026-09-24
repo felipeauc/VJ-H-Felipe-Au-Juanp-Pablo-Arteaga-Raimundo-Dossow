@@ -89,6 +89,8 @@ while running:
                 if estadistica >= 500:
                     nivel_2_desbloqueado = True
                     hubo_cambios = True
+                else:
+                    hubo_cambios = False
 
                 if hubo_cambios:
                     guardar_progreso(max_puntaje, nivel_2_desbloqueado)
