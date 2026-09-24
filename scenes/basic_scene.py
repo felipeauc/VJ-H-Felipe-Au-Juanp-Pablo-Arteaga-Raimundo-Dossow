@@ -102,11 +102,23 @@ def gameloop(screen):
         screen.blit(sombra, (0, 0))
         #----
 
-        #---- FEATURE MENU INICIO - TITULO ----
-        titulo = font_titulo.render("JORGE VS BUGS", True, (255, 215, 80))
-        screen.blit(titulo, titulo.get_rect(center=(screen.get_width() // 2, 180)))
-        #----
+        #---- FEATURE PROGRESION DE NIVELES - BOTONES DEL MENU ----
+        if seleccionando_nivel:
 
+            botones = [
+                (boton_nivel1, "NIVEL 1"),
+                (boton_nivel2, "NIVEL 2"),
+                (boton_volver, "VOLVER"),
+            ]
+
+        else:
+
+            botones = [
+                (boton_jugar, "JUGAR"),
+                (boton_tienda, "TIENDA"),
+                (boton_salir, "SALIR"),
+            ]
+        #----
         #---- FEATURE MENU INICIO - DIBUJAR BOTONES ----
         mouse = pygame.mouse.get_pos()
 
