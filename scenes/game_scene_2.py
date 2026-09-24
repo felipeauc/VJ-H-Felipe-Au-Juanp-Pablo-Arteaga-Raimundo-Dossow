@@ -1,12 +1,12 @@
 if __name__ == "__main__":
     raise RuntimeError("\033c❌ ESTE ARCHIVO NO DEBE EJECUTARSE. EJECUTA main.py")
-
+import random
 import pygame
-from pygame.locals import K_ESCAPE, K_SPACE, KEYDOWN, MOUSEBUTTONDOWN, QUIT, K_RSHIFT
+from pygame.locals import K_ESCAPE, K_SPACE, KEYDOWN, MOUSEBUTTONDOWN, QUIT
 
 import customization
 
-from elements import Crosshair, Enemy, Player, PowerUp, Player2
+from elements import Crosshair, EnemyLevel2, Player, PowerUp
 
 
 #---- FEATURE MENU PAUSA - CAMBIAR MODO DE PANTALLA ----
@@ -40,7 +40,7 @@ def gameloop(screen):
     #----
 
     #---- FEATURE TIENDA - FONDO SELECCIONADO ----
-    background_image = pygame.image.load(customization.obtener_asset("background")).convert()
+    background_image = pygame.image.load("assets/background_n2.png").convert()
     background_image = pygame.transform.scale(background_image, (screen.get_width(), screen.get_height()))
     #----
 
@@ -57,9 +57,19 @@ def gameloop(screen):
     all_sprites = pygame.sprite.Group()
     all_sprites.add(player)
 
-    #---- FEATURE COOPERATIVO - CREAR JUGADOR 2 ----
-    player2 = Player2(screen)
-    all_sprites.add(player2)
+    #---- FEATURE NUEVOS ENEMIGOS - PROYECTILES ----
+    proyectiles_enemigos = pygame.sprite.Group()
+    #----
+
+    #---- FEATURE PROGRESION DE NIVELES - DRAGONES NIVEL 2 ----
+    enemigos_nivel2 = [
+        "assets/bug_D.png",
+        "assets/bug_G.png",
+        "assets/bug_M.png",
+        "assets/bug_S.png",
+    ]
+
+    indice_enemigo = 0
     #----
 
     #---- FEATURE POWER UPS - CREAR GRUPO DE POWER UPS ----
@@ -68,7 +78,10 @@ def gameloop(screen):
 
     # ? Crear el generador de enemigos
     ADDENEMY = pygame.USEREVENT + 1
-    pygame.time.set_timer(ADDENEMY, 600)
+
+    #---- FEATURE PROGRESION DE NIVELES - DIFICULTAD NIVEL 2 ----
+    pygame.time.set_timer(ADDENEMY, 450)
+    #----
 
     #---- FEATURE POWER UPS - CREAR GENERADOR DE POWER UPS ----
     ADDPOWERUP = pygame.USEREVENT + 2
@@ -125,7 +138,7 @@ def gameloop(screen):
     # ? Crear el reloj del juego
     clock = pygame.time.Clock()
 
-    running = True  # variable booleana para manejar el loop
+    running = True
 
     # * Loop principal del juego, todo lo que ocurre en el juego se hace dentro de este loop
     while running:
@@ -157,7 +170,6 @@ def gameloop(screen):
                             player.fin_rapid_fire += tiempo_pausa
 
                         player.ultimo_dash += tiempo_pausa
-                        player2.ultima_embestida += tiempo_pausa
 
                         for i in range(len(estelas_dash)):
                             inicio, fin, tiempo_inicio = estelas_dash[i]
@@ -181,7 +193,6 @@ def gameloop(screen):
                             player.fin_rapid_fire += tiempo_pausa
 
                         player.ultimo_dash += tiempo_pausa
-                        player2.ultima_embestida += tiempo_pausa
 
                         for i in range(len(estelas_dash)):
                             inicio, fin, tiempo_inicio = estelas_dash[i]
@@ -217,7 +228,7 @@ def gameloop(screen):
                 continue
             #----
 
-            if event.type == KEYDOWN:  # se presiono una tecla?
+            if event.type == KEYDOWN:
 
                 #---- FEATURE MENU PAUSA - ACTIVAR PAUSA ----
                 if event.key == K_ESCAPE:
@@ -233,46 +244,28 @@ def gameloop(screen):
                 if event.key == K_SPACE:
 
                     resultado_dash = player.dash(pygame.key.get_pressed())
-                    
+
                     if resultado_dash is not None:
-                                            inicio, fin = resultado_dash
-                                            estelas_dash.append((inicio, fin, pygame.time.get_ticks()))
-                #----
-
-                #---- FEATURE COOPERATIVO - EMBESTIDA JUGADOR 2 ----
-                if event.key == K_RSHIFT:
-
-                    resultado_embestida = player2.embestida(pygame.key.get_pressed())
-
-                    if resultado_embestida is not None:
-                        inicio, fin = resultado_embestida
+                        inicio, fin = resultado_dash
                         estelas_dash.append((inicio, fin, pygame.time.get_ticks()))
-
-                        golpeados = 0
-
-                        for paso in range(11):
-
-                            x = inicio[0] + (fin[0] - inicio[0]) * paso / 10
-                            y = inicio[1] + (fin[1] - inicio[1]) * paso / 10
-                            player2.rect.center = (x, y)
-
-                            enemigos_golpeados = pygame.sprite.spritecollide(player2, enemies, True)
-                            golpeados += len(enemigos_golpeados)
-
-                        player2.rect.center = fin
-
-                        if golpeados > 0:
-                            estadistica += golpeados * 5
-                            sonido_hit.play()
                 #----
 
-            # ? Generar enemigos
+            #---- FEATURE PROGRESION DE NIVELES - GENERAR DRAGONES NIVEL 2 ----
             elif event.type == ADDENEMY:
 
-                new_enemy = Enemy(screen)
+                #---- FEATURE NUEVOS ENEMIGOS - PROBABILIDADES ----
+                tipo = random.choices(
+                    ["normal", "S", "G", "M", "D"],
+                    weights=[50, 25, 12, 8, 5],
+                    k=1
+                )[0]
+
+                new_enemy = EnemyLevel2(screen, tipo)
 
                 enemies.add(new_enemy)
                 all_sprites.add(new_enemy)
+        
+            #----
 
             #---- FEATURE POWER UPS - GENERAR POWER UP ----
             elif event.type == ADDPOWERUP:
@@ -296,12 +289,12 @@ def gameloop(screen):
                 player.shoot(pygame.mouse.get_pos())
             #----
 
-            # ? Actualizar el estado interno de los sprites (posiciones, etc)
+            # ? Actualizar el estado interno de los sprites
             pressed_keys = pygame.key.get_pressed()
 
             player.update(pressed_keys)
-            player2.update(pressed_keys)
-            enemies.update()
+            enemies.update(player.rect.center, proyectiles_enemigos)
+            proyectiles_enemigos.update()
             crosshair.update()
 
             #---- FEATURE POWER UPS - ACTUALIZAR POWER UPS ----
@@ -357,6 +350,11 @@ def gameloop(screen):
         for bullet in player.bullets:
             screen.blit(bullet.image, bullet.rect)
 
+        #---- FEATURE NUEVOS ENEMIGOS - DIBUJAR PROYECTILES ----
+        for proyectil in proyectiles_enemigos:
+            screen.blit(proyectil.image, proyectil.rect)
+        #----
+
         #---- FEATURE VIDAS DEL JUGADOR - HUD DE CORAZONES ----
         for i in range(player.vidas):
 
@@ -410,20 +408,6 @@ def gameloop(screen):
         pygame.draw.rect(screen, (255, 200, 40), (mana_x, mana_y, int(mana_ancho * mana_dash), mana_alto), border_radius=4)
         #----
 
-        #---- FEATURE COOPERATIVO - HUD JUGADOR 2 ----
-        for i in range(player2.vidas):
-
-            x = screen.get_width() - 54 - i * 40
-            screen.blit(icono_corazon, (x, 65))
-
-        barra_x = screen.get_width() - 220
-        tiempo_embestida = tiempo_visual - player2.ultima_embestida
-        mana_embestida = min(1, tiempo_embestida / player2.cooldown_embestida)
-
-        pygame.draw.rect(screen, (30, 30, 35), (barra_x, 105, 200, 9), border_radius=4)
-        pygame.draw.rect(screen, (80, 180, 255), (barra_x, 105, int(200 * mana_embestida), 9), border_radius=4)
-
-
         #---- FEATURE POWER UPS - BARRA RAPID FIRE COMPACTA ----
         if player.rapid_fire:
 
@@ -441,6 +425,37 @@ def gameloop(screen):
         #----
 
         if not pausado:
+            #---- FEATURE NUEVOS ENEMIGOS - IMPACTO PROYECTILES ----
+            impactos = pygame.sprite.spritecollide(player, proyectiles_enemigos, True)
+
+            for proyectil in impactos:
+
+                if proyectil.tipo == "M":
+
+                    player.aplicar_slow()
+
+                elif proyectil.tipo == "D":
+
+                    if player.escudo:
+
+                        player.escudo = False
+                        player.actualizar_apariencia()
+
+                    else:
+
+                        sonido_damage.play()
+
+                        murio = player.recibir_dano()
+
+                        if murio:
+
+                            player.kill()
+
+                            pygame.mixer.music.stop()
+                            pygame.mouse.set_visible(True)
+
+                            return ("dead", estadistica)
+            #----
 
             #---- FEATURE POWER UPS - RECOGER POWER UP ----
             powerups_recogidos = pygame.sprite.spritecollide(player, powerups, True)
@@ -453,8 +468,6 @@ def gameloop(screen):
 
                 player.activar_powerup(powerup.tipo)
             #----
-
-            # ? Calcular colisiones entre jugador y enemigos
 
             #---- FEATURE VIDAS DEL JUGADOR - DAÑO DE ENEMIGOS ----
             enemigos_tocando = pygame.sprite.spritecollide(player, enemies, False)
@@ -487,28 +500,22 @@ def gameloop(screen):
                         return ("dead", estadistica)
             #----
 
-            #---- FEATURE COOPERATIVO - DAÑO JUGADOR 2 ----
-            enemigos_tocando_2 = pygame.sprite.spritecollide(player2, enemies, False)
-
-            if enemigos_tocando_2:
-
-                enemigos_tocando_2[0].kill()
-                sonido_damage.play()
-
-                murio_2 = player2.recibir_dano()
-
-                if murio_2:
-
-                    player2.kill()
-
-                    pygame.mixer.music.stop()
-                    pygame.mouse.set_visible(True)
-
-                    return ("dead", estadistica)
-            #----
-
             # TODO (2.6): Calcular colisiones entre balas y enemigos
-            colisiones_balas = pygame.sprite.groupcollide(player.bullets, enemies, True, True)
+            colisiones_balas = pygame.sprite.groupcollide(player.bullets, enemies, True, False)
+
+            if colisiones_balas:
+                sonido_hit.play()
+
+            for lista_enemigos in colisiones_balas.values():
+
+                for enemigo in lista_enemigos:
+
+                    if enemigo.alive():
+
+                        murio_enemigo = enemigo.recibir_dano()
+
+                        if murio_enemigo:
+                            estadistica += 5
 
             for lista_enemigos in colisiones_balas.values():
                 estadistica += len(lista_enemigos) * 5
