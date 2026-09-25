@@ -3,6 +3,7 @@ if __name__ == "__main__":
 
 import pygame
 import sys
+from scenes import notificaciones
 
 def gameloop(screen, estadistica):
     try:
@@ -66,4 +67,5 @@ def gameloop(screen, estadistica):
                     if boton_quit.collidepoint(mouse_pos):
                         return "quit"
         
+        notificaciones.dibujar(screen)
         pygame.display.flip()

@@ -1,6 +1,6 @@
 import pygame
 
-from scenes import basic_scene, game_scene, game_scene_2, death_scene, shop_scene
+from scenes import basic_scene, game_scene, game_scene_2, death_scene, shop_scene, logros_scene, notificaciones
 
 ARCHIVO_GUARDADO = "progreso.txt"
 
@@ -38,6 +38,20 @@ def guardar_estadisticas(nivel_vida, nivel_balas):
         archivo.write(f"{nivel_vida}\n")
         archivo.write(f"{nivel_balas}")
 
+ARCHIVO_LOGROS = "logros.txt"
+
+def cargar_logros():
+    try:
+        with open(ARCHIVO_LOGROS, "r") as archivo:
+            return [linea.strip() == "True" for linea in archivo.readlines()]
+    except FileNotFoundError:
+        return [False] * 12
+
+def guardar_logros(logros):
+    with open(ARCHIVO_LOGROS, "w") as archivo:
+        for logro in logros:
+            archivo.write(f"{logro}\n")
+
 # ? Inicializamos pygame
 pygame.init()
 
@@ -55,6 +69,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 max_puntaje, nivel_2_desbloqueado, coins = cargar_progreso()
 nivel_vida, nivel_balas = cargar_estadisticas()
+logros = cargar_logros()
 
 # ? Aqui se ejecutaran las escenas del juego en orden
 running = True
@@ -72,10 +87,29 @@ while running:
 
         screen = pygame.display.get_surface()
         resultado_tienda, coins, nivel_vida, nivel_balas = shop_scene.gameloop(screen, coins, nivel_vida, nivel_balas)
+
         guardar_progreso(max_puntaje, nivel_2_desbloqueado, coins)
         guardar_estadisticas(nivel_vida, nivel_balas)
 
+        if nivel_vida >= 10 and not logros[4]:
+            logros[4] = True
+            notificaciones.mostrar(4)
+        if nivel_balas >= 10 and not logros[5]:
+            logros[5] = True 
+            notificaciones.mostrar(5)
+
+        guardar_logros(logros)
+
         if resultado_tienda == "quit":
+            break
+
+        continue
+    if resultado_menu == "logros":
+
+        screen = pygame.display.get_surface()
+        resultado_logros = logros_scene.gameloop(screen, logros)
+
+        if resultado_logros == "quit":
             break
 
         continue
@@ -117,6 +151,23 @@ while running:
                     nivel_2_desbloqueado = True
 
                 guardar_progreso(max_puntaje, nivel_2_desbloqueado, coins)
+
+                logros[0] = True  # Primeros pasos (Jugar 1 partida)
+                
+                if estadistica >= 500 and not logros[1]:
+                    logros[1] = True
+                    notificaciones.mostrar(1)
+                if estadistica >= 1000 and not logros[2]:
+                    logros[2] = True
+                    notificaciones.mostrar(2)
+                if coins >= 100 and not logros[3]:
+                    logros[3] = True 
+                    notificaciones.mostrar(3)
+                if estadistica < 10 and not logros[9]:
+                    logros[9] = True 
+                    notificaciones.mostrar(9)
+                
+                guardar_logros(logros)
 
                 resultado_muerte = death_scene.gameloop(screen, estadistica)
 

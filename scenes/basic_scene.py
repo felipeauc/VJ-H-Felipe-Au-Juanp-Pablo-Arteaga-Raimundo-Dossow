@@ -2,7 +2,8 @@ if __name__ == "__main__":
     raise RuntimeError("\033c❌ ESTE ARCHIVO NO DEBE EJECUTARSE. EJECUTA main.py")
 
 import pygame
-from pygame.locals import K_ESCAPE, KEYDOWN, MOUSEBUTTONDOWN, QUIT
+from scenes import notificaciones
+from pygame.locals import K_ESCAPE, KEYDOWN, MOUSEBUTTONDOWN, QUIT, K_l
 
 import customization
 
@@ -19,6 +20,7 @@ def gameloop(screen, nivel_2_desbloqueado=True):
     # Definimos la fuente y texto a usar
     font_titulo = pygame.font.Font(None, 85)
     font = pygame.font.Font(None, 45)
+    font_chica = pygame.font.Font(None, 27)
 
     #---- FEATURE MENU INICIO - BOTONES ----
     boton_jugar = pygame.Rect(0, 0, 280, 65)
@@ -54,7 +56,10 @@ def gameloop(screen, nivel_2_desbloqueado=True):
     boton_2_jugadores.center = (screen.get_width() // 2, 450)
     #----
 
+    texto_logros = font_chica.render("L - VER LOGROS", True, (220, 220, 220))
+
     # Iniciamos el loop principal de la escena inicial
+
     while running:
 
         for event in pygame.event.get():
@@ -65,12 +70,15 @@ def gameloop(screen, nivel_2_desbloqueado=True):
 
                     if seleccionando_nivel:
                         seleccionando_nivel = False
-
+                        
                     elif seleccionando_jugadores:
                         seleccionando_jugadores = False
 
                     else:
                         return "quit"
+                    
+                elif event.key == K_l:
+                    return "logros"
 
             elif event.type == QUIT:
                 return "quit"
@@ -189,9 +197,11 @@ def gameloop(screen, nivel_2_desbloqueado=True):
             pygame.draw.rect(screen, borde, boton, 3, border_radius=10)
             texto_render = font.render(texto, True, color_texto)
             screen.blit(texto_render, texto_render.get_rect(center=boton.center))
+            screen.blit(texto_logros, (screen.get_width() / 2 - 70, screen.get_height() - 50))
         #----
 
         # Actualizar pantalla
+        notificaciones.dibujar(screen)
         pygame.display.flip()
 
         # Limitar FPS
