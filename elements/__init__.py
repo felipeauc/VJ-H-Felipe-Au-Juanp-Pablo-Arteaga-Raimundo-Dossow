@@ -35,9 +35,13 @@ from .powerup import PowerUp
 from .player2 import Player2
 #----
 
+#---- FEATURE COOPERATIVO - IMPORTAR ONDA EXPANSIVA ----
+from .onda import OndaExpansiva
+#----
+
 # ? Para agregar mas elementos, solo hay que importarlos y agregarlos a la lista __all__.
 # ? from .nombre_del_archivo import NombreDeLaClase
 
 #---- FEATURE POWER UPS - AGREGAR POWER UP A ELEMENTS ----
-__all__ = ["Bullet", "Crosshair", "Enemy", "EnemyLevel2", "EnemyProjectile", "Player", "PowerUp", "Player2"]
+__all__ = ["Bullet", "Crosshair", "Enemy", "EnemyLevel2", "EnemyProjectile", "Player", "PowerUp", "Player2", "OndaExpansiva"]
 #----

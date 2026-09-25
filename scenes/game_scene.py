@@ -7,7 +7,7 @@ from pygame.math import Vector2
 
 import customization
 
-from elements import Crosshair, Enemy, Player, PowerUp, Player2
+from elements import Crosshair, Enemy, Player, PowerUp, Player2, OndaExpansiva
 
 
 #---- FEATURE MENU PAUSA - CAMBIAR MODO DE PANTALLA ----
@@ -69,6 +69,10 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
 
     if dos_jugadores:
         all_sprites.add(player2)
+    #----
+
+    #---- FEATURE COOPERATIVO - CREAR ONDA EXPANSIVA ----
+    onda = OndaExpansiva()
     #----
 
     #---- FEATURE POWER UPS - CREAR GRUPO DE POWER UPS ----
@@ -329,6 +333,24 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
             powerups.update()
             #----
 
+            #---- FEATURE COOPERATIVO - CARGAR ONDA EXPANSIVA ----
+            if dos_jugadores and not player.caido and not player2.caido:
+                cargando = pressed_keys[K_SPACE] and pressed_keys[K_RSHIFT]
+
+            else:
+                cargando = False
+
+            centro_x = (player.rect.centerx + player2.rect.centerx) // 2
+            centro_y = (player.rect.centery + player2.rect.centery) // 2
+
+            if onda.update(cargando, (centro_x, centro_y)):
+
+                estadistica += len(enemies) * 5
+
+                for enemigo in enemies.sprites():
+                    enemigo.kill()
+            #----
+
             ahora_puntos = pygame.time.get_ticks()
 
             if ahora_puntos - ultimo_segundo >= 1000:
@@ -388,6 +410,11 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
         #---- FEATURE POWER UPS - DIBUJAR POWER UPS ----
         for powerup in powerups:
             screen.blit(powerup.image, powerup.rect)
+        #----
+
+        #---- FEATURE COOPERATIVO - DIBUJAR ONDA EXPANSIVA ----
+        if onda.animacion > 0:
+            screen.blit(onda.image, onda.rect)
         #----
 
         # TODO (2.5): Dibujar las balas en la ventana
@@ -475,6 +502,29 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
 
             pygame.draw.rect(screen, color_barra, (barra_x, 105, int(200 * mana_embestida), 9), border_radius=4)
 
+
+        #---- FEATURE COOPERATIVO - BARRA ONDA EXPANSIVA ----
+        if dos_jugadores:
+
+            onda_ancho = 240
+            onda_x = screen.get_width() // 2 - onda_ancho // 2
+            onda_y = 24
+
+            if onda.espera > 0:
+                progreso_onda = 1 - onda.espera / onda.cooldown
+                color_onda = (110, 110, 120)
+
+            elif onda.carga > 0:
+                progreso_onda = onda.carga / onda.tiempo_carga
+                color_onda = (255, 255, 255)
+
+            else:
+                progreso_onda = 1
+                color_onda = (170, 90, 255)
+
+            pygame.draw.rect(screen, (30, 30, 35), (onda_x, onda_y, onda_ancho, 12), border_radius=5)
+            pygame.draw.rect(screen, color_onda, (onda_x, onda_y, int(onda_ancho * progreso_onda), 12), border_radius=5)
+        #----
 
         #---- FEATURE POWER UPS - BARRA RAPID FIRE COMPACTA ----
         if player.rapid_fire:

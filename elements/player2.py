@@ -11,8 +11,7 @@ Jugador2PNG_scaled = pygame.transform.scale(Jugador2PNG, (80, 80))
 #----
 
 #---- FEATURE COOPERATIVO - SPRITE CON ESCUDO JUGADOR 2 ----
-# ? Por ahora usa la misma imagen, cambiar por la del escudo cuando exista
-Jugador2ShieldPNG = pygame.image.load("assets/jugador2.png")
+Jugador2ShieldPNG = pygame.image.load("assets/jugador2_shield.png")
 Jugador2ShieldPNG_scaled = pygame.transform.scale(Jugador2ShieldPNG, (80, 80))
 #----
 
@@ -28,7 +27,7 @@ class Player2(pygame.sprite.Sprite):
         self.screen_width = screen.get_width()
         self.screen_height = screen.get_height()
 
-        self.velocidad = 4
+        self.velocidad = 7
 
         #---- FEATURE COOPERATIVO - VIDAS JUGADOR 2 ----
         self.max_vidas = 5 + nivel_vida
