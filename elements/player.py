@@ -60,7 +60,7 @@ JorgeShieldRapidSprintPNG_scaled = pygame.transform.scale(JorgeShieldRapidSprint
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, screen):
+    def __init__(self, screen, nivel_vida, nivel_balas):
 
         super().__init__()
 
@@ -92,6 +92,10 @@ class Player(pygame.sprite.Sprite):
         self.sobrecalentado = False
         self.inicio_sobrecalentamiento = 0
 
+        #---- FEATURE VIDAS DEL JUGADOR - 5 CORAZONES ----
+        self.vidas = 5
+        self.max_vidas = 5
+        #----
 
         # coop
         self.caido = False

@@ -23,7 +23,7 @@ def cambiar_modo_pantalla(pantalla_completa):
 #----
 
 
-def gameloop(screen, cantidad_jugadores=1):
+def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
     # * Preparamos la escena de juego, cargando los elementos que se van a usar en el loop principal
 
     #---- FEATURE MUSICA Y SONIDO - MUSICA DE FONDO ----
@@ -46,7 +46,7 @@ def gameloop(screen, cantidad_jugadores=1):
     #----
 
     # ? Crear la instancia de jugador
-    player = Player(screen)
+    player = Player(screen, nivel_vida, nivel_balas)
 
     #---- FEATURE MIRA ----
     crosshair = Crosshair()
@@ -65,7 +65,7 @@ def gameloop(screen, cantidad_jugadores=1):
     else:
         dos_jugadores = False
 
-    player2 = Player2(screen)
+    player2 = Player2(screen, nivel_vida, nivel_balas)
 
     if dos_jugadores:
         all_sprites.add(player2)
@@ -422,13 +422,13 @@ def gameloop(screen, cantidad_jugadores=1):
             screen.blit(bullet.image, bullet.rect)
 
         #---- FEATURE VIDAS DEL JUGADOR - HUD DE CORAZONES ----
-        for i in range(player.vidas):
+        corazones_visibles = min(player.vidas, 5)
 
+        for i in range(corazones_visibles):
             x = 20 + i * 40
-
+            
             if player.escudo:
                 screen.blit(icono_corazon_shield, (x, 20))
-
             else:
                 screen.blit(icono_corazon, (x, 20))
         #----
@@ -446,15 +446,18 @@ def gameloop(screen, cantidad_jugadores=1):
         separacion = 8
         ancho_icono = icono_flecha.get_width()
 
-        for i in range(player.max_disparos):
+        balas_visibles = min(player.max_disparos, 5)
+        balas_llenas = player.max_disparos - player.disparos
 
+        for i in range(balas_visibles):
+            
             x = inicio_x + i * (ancho_icono + separacion)
             posicion_icono = (x, inicio_y)
 
             if player.rapid_fire:
                 screen.blit(icono_flecha_rapid, posicion_icono)
 
-            elif i >= player.max_disparos - player.disparos:
+            elif i >= balas_llenas:
                 screen.blit(icono_flecha_sombra, posicion_icono)
 
             else:
@@ -477,13 +480,12 @@ def gameloop(screen, cantidad_jugadores=1):
         #---- FEATURE COOPERATIVO - HUD JUGADOR 2 ----
 
         if dos_jugadores:
-            for i in range(player2.vidas):
-
+            corazones_visibles = min(player2.vidas, 5)
+            
+            for i in range(corazones_visibles):
                 x = screen.get_width() - 54 - i * 40
-
                 if player2.escudo:
                     screen.blit(icono_corazon_shield, (x, 65))
-
                 else:
                     screen.blit(icono_corazon, (x, 65))
 

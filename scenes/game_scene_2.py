@@ -67,11 +67,10 @@ def cambiar_modo_pantalla(pantalla_completa):
 
 
 def gameloop(screen, cantidad_jugadores=1):
+    # * Preparamos la escena de juego, cargando los elementos que se van a usar en el loop principal
 
-    pygame.mixer.music.load(
-        "assets/background.ogg"
-    )
-
+    #---- FEATURE MUSICA Y SONIDO - MUSICA DE FONDO ----
+    pygame.mixer.music.load("assets/background.ogg")
     pygame.mixer.music.set_volume(0.30)
 
     pygame.mixer.music.play(-1)
@@ -95,20 +94,12 @@ def gameloop(screen, cantidad_jugadores=1):
     sonido_hit.set_volume(0.70)
 
 
-    # nivel 2 tiene su fondo propio
-    background_image = pygame.image.load(
-        "assets/background_n2.png"
-    ).convert()
+    #---- FEATURE TIENDA - FONDO SELECCIONADO ----
+    background_image = pygame.image.load("assets/background_n2.png").convert()
+    background_image = pygame.transform.scale(background_image, (screen.get_width(), screen.get_height()))
+    #----
 
-    background_image = pygame.transform.scale(
-        background_image,
-        (
-            screen.get_width(),
-            screen.get_height()
-        )
-    )
-
-
+    # ? Crear la instancia de jugador
     player = Player(screen)
 
 
@@ -128,7 +119,6 @@ def gameloop(screen, cantidad_jugadores=1):
     dos_jugadores = cantidad_jugadores == 2
 
     player2 = Player2(screen)
-
 
     if dos_jugadores:
         all_sprites.add(player2)
@@ -893,18 +883,13 @@ def gameloop(screen, cantidad_jugadores=1):
             )
 
 
-        # corazones j1
+        #---- FEATURE VIDAS DEL JUGADOR - HUD DE CORAZONES ----
         for i in range(player.vidas):
 
             x = 20 + i * 40
 
-
             if player.escudo:
-
-                screen.blit(
-                    icono_corazon_shield,
-                    (x, 20)
-                )
+                screen.blit(icono_corazon_shield, (x, 20))
 
             else:
 
@@ -962,21 +947,8 @@ def gameloop(screen, cantidad_jugadores=1):
 
         for i in range(player.max_disparos):
 
-            x = (
-                inicio_x
-                + i
-                * (
-                    ancho_icono
-                    + separacion
-                )
-            )
-
-
-            posicion_icono = (
-                x,
-                inicio_y
-            )
-
+            x = inicio_x + i * (ancho_icono + separacion)
+            posicion_icono = (x, inicio_y)
 
             if player.rapid_fire:
 
@@ -987,12 +959,7 @@ def gameloop(screen, cantidad_jugadores=1):
 
 
             elif i >= player.max_disparos - player.disparos:
-
-                screen.blit(
-                    icono_flecha_sombra,
-                    posicion_icono
-                )
-
+                screen.blit(icono_flecha_sombra, posicion_icono)
 
             else:
 
@@ -1050,22 +1017,12 @@ def gameloop(screen, cantidad_jugadores=1):
 
         # HUD J2
         if dos_jugadores:
-
             for i in range(player2.vidas):
 
-                x = (
-                    screen.get_width()
-                    - 54
-                    - i * 40
-                )
-
+                x = screen.get_width() - 54 - i * 40
 
                 if player2.escudo:
-
-                    screen.blit(
-                        icono_corazon_shield,
-                        (x, 65)
-                    )
+                    screen.blit(icono_corazon_shield, (x, 65))
 
                 else:
 
