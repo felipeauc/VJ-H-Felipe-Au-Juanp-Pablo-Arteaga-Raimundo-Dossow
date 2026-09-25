@@ -652,7 +652,36 @@ def gameloop(screen, cantidad_jugadores=1):
             #----
 
             # TODO (2.6): Calcular colisiones entre balas y enemigos
-            colisiones_balas = pygame.sprite.groupcollide(player.bullets, enemies, True, True)
+            #---- FEATURE SISTEMA DE HABILIDADES - DAÑO Y PENETRACION ----
+            for bala in player.bullets.sprites():
+
+                enemigos_golpeados = pygame.sprite.spritecollide(
+                    bala,
+                    enemies,
+                    False
+                )
+
+                for enemigo in enemigos_golpeados:
+
+                    identificador = id(enemigo)
+
+                    if identificador in bala.enemigos_golpeados:
+                        continue
+
+                    bala.enemigos_golpeados.add(identificador)
+
+                    enemigo.kill()
+
+                    estadistica += 5
+                    sonido_hit.play()
+
+                    bala.penetracion_restante -= 1
+
+                    if bala.penetracion_restante <= 0:
+
+                        bala.kill()
+                        break
+            #----
 
             for lista_enemigos in colisiones_balas.values():
                 estadistica += len(lista_enemigos) * 5

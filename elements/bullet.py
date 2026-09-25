@@ -1,6 +1,6 @@
 if __name__ == "__main__":
     raise RuntimeError("\033c❌ ESTE ARCHIVO NO DEBE EJECUTARSE. EJECUTA main.py")
-
+import habilidades
 import pygame
 from pygame.math import Vector2
 
@@ -37,6 +37,12 @@ class Bullet(pygame.sprite.Sprite):
         self.direction = direction
         self.screen_width = screen_width
         self.screen_height = screen_height
+
+        #---- FEATURE SISTEMA DE HABILIDADES - DAÑO Y PENETRACION ----
+        self.dano = habilidades.dano()
+        self.penetracion_restante = habilidades.penetracion()
+        self.enemigos_golpeados = set()
+        #----
 
         # TODO (3.1): Rotar la bala para que apunte en la dirección correcta
         angle = self.direction.angle_to(Vector2(1, 0))
