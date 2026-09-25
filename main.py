@@ -92,10 +92,10 @@ while running:
             screen = pygame.display.get_surface()
 
             if nivel_actual == "level1":
-                resultado = game_scene.gameloop(screen, cantidad_jugadores)
+                resultado = game_scene.gameloop(screen, cantidad_jugadores, nivel_vida, nivel_balas)
 
             else:
-                resultado = game_scene_2.gameloop(screen, cantidad_jugadores)
+                resultado = game_scene_2.gameloop(screen, cantidad_jugadores, nivel_vida, nivel_balas)
 
             screen = pygame.display.get_surface()
 

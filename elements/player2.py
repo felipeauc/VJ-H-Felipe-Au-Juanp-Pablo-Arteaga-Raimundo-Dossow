@@ -17,7 +17,7 @@ Jugador2ShieldPNG_scaled = pygame.transform.scale(Jugador2ShieldPNG, (80, 80))
 #----
 
 class Player2(pygame.sprite.Sprite):
-    def __init__(self, screen):
+    def __init__(self, screen, nivel_vida, nivel_balas):
 
         # ? super().__init__() inicializa la clase padre (Sprite)
         super().__init__()
@@ -31,8 +31,11 @@ class Player2(pygame.sprite.Sprite):
         self.velocidad = 4
 
         #---- FEATURE COOPERATIVO - VIDAS JUGADOR 2 ----
-        self.vidas = 5
-        self.max_vidas = 5
+        self.max_vidas = 5 + nivel_vida
+        self.vidas = self.max_vidas
+        
+        self.max_disparos = 5 + nivel_balas
+        self.disparos = self.max_disparos
         #----
 
         #---- FEATURE COOPERATIVO - ESTADO CAIDO ----
