@@ -10,6 +10,12 @@ Jugador2PNG = pygame.image.load("assets/jugador2.png")
 Jugador2PNG_scaled = pygame.transform.scale(Jugador2PNG, (80, 80))
 #----
 
+#---- FEATURE COOPERATIVO - SPRITE CON ESCUDO JUGADOR 2 ----
+# ? Por ahora usa la misma imagen, cambiar por la del escudo cuando exista
+Jugador2ShieldPNG = pygame.image.load("assets/jugador2.png")
+Jugador2ShieldPNG_scaled = pygame.transform.scale(Jugador2ShieldPNG, (80, 80))
+#----
+
 class Player2(pygame.sprite.Sprite):
     def __init__(self, screen):
 
@@ -17,7 +23,7 @@ class Player2(pygame.sprite.Sprite):
         super().__init__()
 
         self.image = Jugador2PNG_scaled
-        self.rect = self.image.get_rect(center=(100, screen.get_height() // 2))
+        self.rect = self.image.get_rect(midleft=(0, screen.get_height() // 2))
 
         self.screen_width = screen.get_width()
         self.screen_height = screen.get_height()
@@ -29,14 +35,29 @@ class Player2(pygame.sprite.Sprite):
         self.max_vidas = 5
         #----
 
+        #---- FEATURE COOPERATIVO - ESTADO CAIDO ----
+        self.caido = False
+        self.progreso_revivir = 0
+        #----
+        
         #---- FEATURE VIDAS DEL JUGADOR - EMBESTIR ----
         self.distancia_embestida = 220
-        self.cooldown_embestida = 2500
+        self.cooldown_embestida = 2000
         self.ultima_embestida = -self.cooldown_embestida
 
         self.sonido_embestida = pygame.mixer.Sound("assets/dash.wav")
         self.sonido_embestida.set_volume(0.70)
-        #----   
+        #----
+
+        #---- FEATURE COOPERATIVO - POWER UPS JUGADOR 2 ----
+        self.escudo = False
+
+        self.furia = False
+        self.duracion_furia = 7000
+        self.fin_furia = 0
+        self.cooldown_normal = self.cooldown_embestida
+        self.cooldown_furia = 400
+        #----
 
     def update(self, pressed_keys):
 
@@ -59,6 +80,13 @@ class Player2(pygame.sprite.Sprite):
         self.rect.top = max(self.rect.top, 0)
         self.rect.bottom = min(self.rect.bottom, self.screen_height)
 
+        #---- FEATURE COOPERATIVO - TERMINAR FURIA ----
+        if self.furia:
+            if pygame.time.get_ticks() >= self.fin_furia:
+                self.furia = False
+                self.cooldown_embestida = self.cooldown_normal
+        #----
+
     #---- FEATURE COOPERATIVO - RECIBIR DAÑO JUGADOR 2 ----
     def recibir_dano(self):
 
@@ -68,6 +96,53 @@ class Player2(pygame.sprite.Sprite):
             return True
 
         return False
+    #----
+
+    #---- FEATURE COOPERATIVO - CAER Y REVIVIR ----
+    def caer(self):
+
+        self.caido = True
+        self.progreso_revivir = 0
+
+        self.image = Jugador2PNG_scaled.copy()
+        self.image.set_alpha(150)
+
+    def revivir(self):
+
+        self.caido = False
+        self.progreso_revivir = 0
+        self.vidas = 2
+
+        self.actualizar_apariencia()
+    #----
+
+    #---- FEATURE COOPERATIVO - ACTIVAR POWER UP JUGADOR 2 ----
+    def activar_powerup(self, tipo):
+
+        if tipo == "rapid_fire":
+            self.furia = True
+            self.fin_furia = pygame.time.get_ticks() + self.duracion_furia
+            self.cooldown_embestida = self.cooldown_furia
+
+        elif tipo == "shield":
+            self.escudo = True
+
+        self.actualizar_apariencia()
+    #----
+
+    #---- FEATURE COOPERATIVO - CAMBIAR APARIENCIA JUGADOR 2 ----
+    def actualizar_apariencia(self):
+
+        centro = self.rect.center
+
+        if self.escudo:
+            self.image = Jugador2ShieldPNG_scaled
+
+        else:
+            self.image = Jugador2PNG_scaled
+
+        self.rect = self.image.get_rect(center=centro)
+    #----
 
     #---- FEATURE COOPERATIVO - EMBESTIR ----
     def embestida(self, pressed_keys):

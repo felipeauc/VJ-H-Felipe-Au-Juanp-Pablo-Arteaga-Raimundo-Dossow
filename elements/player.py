@@ -76,6 +76,11 @@ class Player(pygame.sprite.Sprite):
         self.max_vidas = 5
         #----
 
+        #---- FEATURE COOPERATIVO - ESTADO CAIDO ----
+        self.caido = False
+        self.progreso_revivir = 0
+        #----
+
         #---- FEATURE POWER UPS - RAPID FIRE ----
         self.rapid_fire = False
         self.duracion_rapid_fire = 7000
@@ -229,6 +234,25 @@ class Player(pygame.sprite.Sprite):
             return True
 
         return False
+    #----
+
+
+    #---- FEATURE COOPERATIVO - CAER Y REVIVIR ----
+    def caer(self):
+
+        self.caido = True
+        self.progreso_revivir = 0
+
+        self.image = self.image.copy()
+        self.image.set_alpha(150)
+
+    def revivir(self):
+
+        self.caido = False
+        self.progreso_revivir = 0
+        self.vidas = 2
+
+        self.actualizar_apariencia()
     #----
 
     #---- FEATURE POWER UPS - ACTIVAR POWER UP ----

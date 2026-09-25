@@ -3,6 +3,7 @@ if __name__ == "__main__":
 
 import pygame
 from pygame.locals import K_ESCAPE, K_SPACE, KEYDOWN, MOUSEBUTTONDOWN, QUIT, K_RSHIFT
+from pygame.math import Vector2
 
 import customization
 
@@ -167,6 +168,9 @@ def gameloop(screen, cantidad_jugadores=1):
                         player.ultimo_dash += tiempo_pausa
                         player2.ultima_embestida += tiempo_pausa
 
+                        if player2.furia:
+                            player2.fin_furia += tiempo_pausa
+
                         for i in range(len(estelas_dash)):
                             inicio, fin, tiempo_inicio = estelas_dash[i]
                             estelas_dash[i] = (inicio, fin, tiempo_inicio + tiempo_pausa)
@@ -190,6 +194,9 @@ def gameloop(screen, cantidad_jugadores=1):
 
                         player.ultimo_dash += tiempo_pausa
                         player2.ultima_embestida += tiempo_pausa
+
+                        if player2.furia:
+                            player2.fin_furia += tiempo_pausa
 
                         for i in range(len(estelas_dash)):
                             inicio, fin, tiempo_inicio = estelas_dash[i]
@@ -238,7 +245,7 @@ def gameloop(screen, cantidad_jugadores=1):
                 #----
 
                 #---- FEATURE HABILIDAD ESPECIAL - ACTIVAR DASH ----
-                if event.key == K_SPACE:
+                if event.key == K_SPACE and not player.caido:
 
                     resultado_dash = player.dash(pygame.key.get_pressed())
                     
@@ -248,7 +255,7 @@ def gameloop(screen, cantidad_jugadores=1):
                 #----
 
                 #---- FEATURE COOPERATIVO - EMBESTIDA JUGADOR 2 ----
-                if event.key == K_RSHIFT and dos_jugadores:
+                if event.key == K_RSHIFT and dos_jugadores and not player2.caido:
 
                     resultado_embestida = player2.embestida(pygame.key.get_pressed())
 
@@ -293,22 +300,27 @@ def gameloop(screen, cantidad_jugadores=1):
             # TODO (2.5): Disparar balas al hacer click con el mouse
             elif event.type == MOUSEBUTTONDOWN:
 
-                if event.button == 1:
+                if event.button == 1 and not player.caido:
                     mouse_pos = pygame.mouse.get_pos()
                     player.shoot(mouse_pos)
 
         if not pausado:
 
             #---- FEATURE POWER UPS - DISPARO AUTOMATICO RAPID FIRE ----
-            if player.rapid_fire and pygame.mouse.get_pressed()[0]:
+            if player.rapid_fire and pygame.mouse.get_pressed()[0] and not player.caido:
                 player.shoot(pygame.mouse.get_pos())
             #----
 
             # ? Actualizar el estado interno de los sprites (posiciones, etc)
             pressed_keys = pygame.key.get_pressed()
 
-            player.update(pressed_keys)
-            if dos_jugadores:
+            if not player.caido:
+                player.update(pressed_keys)
+
+            else:
+                player.bullets.update()
+
+            if dos_jugadores and not player2.caido:
                 player2.update(pressed_keys)
             enemies.update()
             crosshair.update()
@@ -356,6 +368,22 @@ def gameloop(screen, cantidad_jugadores=1):
         # ? Dibujar los sprites actualizados en la ventana
         for entity in all_sprites:
             screen.blit(entity.image, entity.rect)
+
+        #---- FEATURE COOPERATIVO - BARRA DE REVIVIR ----
+        if dos_jugadores:
+
+            for jugador in [player, player2]:
+
+                if jugador.caido:
+
+                    progreso = jugador.progreso_revivir / 300
+
+                    barra_x = jugador.rect.centerx - 40
+                    barra_y = jugador.rect.top - 14
+
+                    pygame.draw.rect(screen, (30, 30, 35), (barra_x, barra_y, 80, 8), border_radius=4)
+                    pygame.draw.rect(screen, (90, 230, 120), (barra_x, barra_y, int(80 * progreso), 8), border_radius=4)
+        #----
 
         #---- FEATURE POWER UPS - DIBUJAR POWER UPS ----
         for powerup in powerups:
@@ -425,14 +453,25 @@ def gameloop(screen, cantidad_jugadores=1):
             for i in range(player2.vidas):
 
                 x = screen.get_width() - 54 - i * 40
-                screen.blit(icono_corazon, (x, 65))
+
+                if player2.escudo:
+                    screen.blit(icono_corazon_shield, (x, 65))
+
+                else:
+                    screen.blit(icono_corazon, (x, 65))
 
             barra_x = screen.get_width() - 220
             tiempo_embestida = tiempo_visual - player2.ultima_embestida
             mana_embestida = min(1, tiempo_embestida / player2.cooldown_embestida)
 
             pygame.draw.rect(screen, (30, 30, 35), (barra_x, 105, 200, 9), border_radius=4)
-            pygame.draw.rect(screen, (80, 180, 255), (barra_x, 105, int(200 * mana_embestida), 9), border_radius=4)
+            if player2.furia:
+                color_barra = (255, 120, 40)
+
+            else:
+                color_barra = (80, 180, 255)
+
+            pygame.draw.rect(screen, color_barra, (barra_x, 105, int(200 * mana_embestida), 9), border_radius=4)
 
 
         #---- FEATURE POWER UPS - BARRA RAPID FIRE COMPACTA ----
@@ -454,7 +493,11 @@ def gameloop(screen, cantidad_jugadores=1):
         if not pausado:
 
             #---- FEATURE POWER UPS - RECOGER POWER UP ----
-            powerups_recogidos = pygame.sprite.spritecollide(player, powerups, True)
+            if player.caido:
+                powerups_recogidos = []
+
+            else:
+                powerups_recogidos = pygame.sprite.spritecollide(player, powerups, True)
 
             for powerup in powerups_recogidos:
 
@@ -465,12 +508,23 @@ def gameloop(screen, cantidad_jugadores=1):
                 player.activar_powerup(powerup.tipo)
             #----
 
+            #---- FEATURE COOPERATIVO - RECOGER POWER UP JUGADOR 2 ----
+            if dos_jugadores and not player2.caido:
+
+                powerups_recogidos_2 = pygame.sprite.spritecollide(player2, powerups, True)
+
+                for powerup in powerups_recogidos_2:
+
+                    sonido_powerup.play()
+                    player2.activar_powerup(powerup.tipo)
+            #----
+
             # ? Calcular colisiones entre jugador y enemigos
 
             #---- FEATURE VIDAS DEL JUGADOR - DAÑO DE ENEMIGOS ----
             enemigos_tocando = pygame.sprite.spritecollide(player, enemies, False)
 
-            if enemigos_tocando:
+            if enemigos_tocando and not player.caido:
 
                 enemigo = enemigos_tocando[0]
                 enemigo.kill()
@@ -489,33 +543,62 @@ def gameloop(screen, cantidad_jugadores=1):
                     murio = player.recibir_dano()
 
                     if murio:
-
-                        player.kill()
-
-                        pygame.mixer.music.stop()
-                        pygame.mouse.set_visible(True)
-
-                        return ("dead", estadistica)
+                        player.caer()
             #----
 
             #---- FEATURE COOPERATIVO - DAÑO JUGADOR 2 ----
             enemigos_tocando_2 = pygame.sprite.spritecollide(player2, enemies, False)
  
-            if dos_jugadores and enemigos_tocando_2:
+            if dos_jugadores and enemigos_tocando_2 and not player2.caido:
 
                 enemigos_tocando_2[0].kill()
-                sonido_damage.play()
 
-                murio_2 = player2.recibir_dano()
+                if player2.escudo:
+                    player2.escudo = False
+                    player2.actualizar_apariencia()
 
-                if murio_2:
+                else:
+                    sonido_damage.play()
 
-                    player2.kill()
+                    murio_2 = player2.recibir_dano()
 
-                    pygame.mixer.music.stop()
-                    pygame.mouse.set_visible(True)
+                    if murio_2:
+                        player2.caer()
+            #----
 
-                    return ("dead", estadistica)
+            #---- FEATURE COOPERATIVO - REVIVIR ----
+            if dos_jugadores:
+
+                for jugador_caido, rescatista in [(player, player2), (player2, player)]:
+
+                    if jugador_caido.caido and not rescatista.caido:
+
+                        distancia = (Vector2(jugador_caido.rect.center) - Vector2(rescatista.rect.center)).length()
+
+                        if distancia < 110:
+                            jugador_caido.progreso_revivir += 1
+
+                        else:
+                            jugador_caido.progreso_revivir = 0
+
+                        if jugador_caido.progreso_revivir >= 300:
+                            jugador_caido.revivir()
+                            sonido_powerup.play()
+            #----
+
+            #---- FEATURE COOPERATIVO - FIN DEL JUEGO ----
+            if dos_jugadores:
+                todos_caidos = player.caido and player2.caido
+
+            else:
+                todos_caidos = player.caido
+
+            if todos_caidos:
+
+                pygame.mixer.music.stop()
+                pygame.mouse.set_visible(True)
+
+                return ("dead", estadistica)
             #----
 
             # TODO (2.6): Calcular colisiones entre balas y enemigos
