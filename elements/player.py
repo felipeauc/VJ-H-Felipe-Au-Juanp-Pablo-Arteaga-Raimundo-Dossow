@@ -2,15 +2,7 @@ if __name__ == "__main__":
     raise RuntimeError("\033c❌ ESTE ARCHIVO NO DEBE EJECUTARSE. EJECUTA main.py")
 
 import pygame
-
-from pygame.locals import (
-    K_a,
-    K_d,
-    K_s,
-    K_w,
-    K_LSHIFT,
-)
-
+from pygame.locals import K_a, K_d, K_s, K_w, K_LSHIFT
 from pygame.math import Vector2
 
 from .bullet import Bullet
@@ -18,11 +10,12 @@ from .bullet import Bullet
 import habilidades
 
 
+# jorge normal
 JorgePNG = pygame.image.load("assets/jorge.png")
 JorgePNG_scaled = pygame.transform.scale(JorgePNG, (80, 80))
 
 
-# sprites power up
+# estados de powerups / reload
 JorgeShieldPNG = pygame.image.load("assets/jorge_shield.png")
 JorgeShieldPNG_scaled = pygame.transform.scale(JorgeShieldPNG, (80, 80))
 
@@ -60,44 +53,42 @@ JorgeShieldRapidSprintPNG_scaled = pygame.transform.scale(JorgeShieldRapidSprint
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, screen, nivel_vida, nivel_balas):
+    def __init__(self, screen):
 
         super().__init__()
-
 
         self.image = JorgePNG_scaled
         self.rect = self.image.get_rect()
 
-
         self.screen_width = screen.get_width()
         self.screen_height = screen.get_height()
 
-
+        # balas
         self.bullets = pygame.sprite.Group()
 
 
-        # ===== MEJORAS DE TIENDA =====
+        # ==========================================
+        # MEJORAS PERMANENTES DE LA TIENDA
+        # ==========================================
+
         self.max_disparos = habilidades.municion_maxima()
 
         self.tiempo_sobrecalentamiento = habilidades.tiempo_recarga()
 
         self.max_vidas = habilidades.vida_maxima()
         self.vidas = self.max_vidas
-        # ==============================
+
+        # ==========================================
 
 
-        # arma
+        # sistema arma
         self.disparos = 0
 
         self.sobrecalentado = False
         self.inicio_sobrecalentamiento = 0
 
-        #---- FEATURE VIDAS DEL JUGADOR - 5 CORAZONES ----
-        self.vidas = 5
-        self.max_vidas = 5
-        #----
 
-        # coop
+        # coop caido
         self.caido = False
         self.progreso_revivir = 0
 
@@ -112,23 +103,23 @@ class Player(pygame.sprite.Sprite):
         self.cooldown_rapid_fire = 100
 
 
-        # shield
+        # escudo
         self.escudo = False
 
 
-        # velocidad
+        # movimiento
         self.velocidad_normal = 4
         self.velocidad_rapida = 6
 
         self.sprint = False
 
 
-        # slow del morado
+        # slow del bug M
         self.fin_slow = 0
         self.factor_slow = 0.5
 
 
-        # dash
+        # DASH
         self.distancia_dash = 140
 
         self.cooldown_dash = 1500
@@ -136,13 +127,8 @@ class Player(pygame.sprite.Sprite):
 
 
         # sonidos
-        self.sonido_disparo = pygame.mixer.Sound(
-            "assets/arrow.wav"
-        )
-
-        self.sonido_dash = pygame.mixer.Sound(
-            "assets/dash.wav"
-        )
+        self.sonido_disparo = pygame.mixer.Sound("assets/arrow.wav")
+        self.sonido_dash = pygame.mixer.Sound("assets/dash.wav")
 
         self.sonido_disparo.set_volume(0.55)
         self.sonido_dash.set_volume(0.70)
@@ -174,7 +160,7 @@ class Player(pygame.sprite.Sprite):
             velocidad = self.velocidad_normal
 
 
-        # si el M te pego vas mas lento
+        # slow morado
         if pygame.time.get_ticks() < self.fin_slow:
 
             velocidad = max(
@@ -183,6 +169,7 @@ class Player(pygame.sprite.Sprite):
             )
 
 
+        # mover jorge
         if pressed_keys[K_w]:
             self.rect.move_ip(0, -velocidad)
 
@@ -196,35 +183,54 @@ class Player(pygame.sprite.Sprite):
             self.rect.move_ip(velocidad, 0)
 
 
-        # que no se escape jorge
-        self.rect.left = max(self.rect.left, 0)
-        self.rect.right = min(self.rect.right, self.screen_width)
+        # mantenerlo adentro de la pantalla
+        self.rect.left = max(
+            self.rect.left,
+            0
+        )
 
-        self.rect.top = max(self.rect.top, 0)
-        self.rect.bottom = min(self.rect.bottom, self.screen_height)
+        self.rect.right = min(
+            self.rect.right,
+            self.screen_width
+        )
+
+        self.rect.top = max(
+            self.rect.top,
+            0
+        )
+
+        self.rect.bottom = min(
+            self.rect.bottom,
+            self.screen_height
+        )
 
 
+        # actualizar proyectiles
         self.bullets.update()
 
 
         ahora = pygame.time.get_ticks()
 
 
-        # recargar
+        # recarga
         if self.sobrecalentado:
 
-            if ahora - self.inicio_sobrecalentamiento >= self.tiempo_sobrecalentamiento:
+            if (
+                ahora - self.inicio_sobrecalentamiento
+                >= self.tiempo_sobrecalentamiento
+            ):
 
                 self.sobrecalentado = False
                 self.disparos = 0
 
 
-        # fin rapid
+        # termina rapid fire
         if self.rapid_fire:
 
             if ahora >= self.fin_rapid_fire:
 
                 self.rapid_fire = False
+
                 self.disparos = 0
                 self.sobrecalentado = False
 
@@ -234,11 +240,15 @@ class Player(pygame.sprite.Sprite):
 
     def shoot(self, mouse_pos):
 
+        # RAPID fire
         if self.rapid_fire:
 
             ahora = pygame.time.get_ticks()
 
-            if ahora - self.ultimo_disparo_rapid_fire < self.cooldown_rapid_fire:
+            if (
+                ahora - self.ultimo_disparo_rapid_fire
+                < self.cooldown_rapid_fire
+            ):
                 return
 
             self.ultimo_disparo_rapid_fire = ahora
@@ -250,6 +260,7 @@ class Player(pygame.sprite.Sprite):
                 return
 
 
+        # direccion al mouse
         distance = (
             Vector2(mouse_pos)
             - Vector2(self.rect.center)
@@ -271,12 +282,16 @@ class Player(pygame.sprite.Sprite):
             self.rapid_fire
         )
 
-        self.bullets.add(bullet)
+
+        self.bullets.add(
+            bullet
+        )
 
 
         self.sonido_disparo.play()
 
 
+        # rapid no gasta municion
         if not self.rapid_fire:
 
             self.disparos += 1
@@ -289,27 +304,37 @@ class Player(pygame.sprite.Sprite):
                 self.inicio_sobrecalentamiento = pygame.time.get_ticks()
 
 
-    # daño jorge
+    # daño
     def recibir_dano(self):
 
         self.vidas -= 1
 
 
         if self.vidas <= 0:
+
+            self.vidas = 0
+
             return True
 
 
         return False
 
 
-    # caerse y revivir coop
+    # ==============================================
+    # COOP
+    # ==============================================
+
     def caer(self):
 
         self.caido = True
         self.progreso_revivir = 0
 
+
         self.image = self.image.copy()
-        self.image.set_alpha(150)
+
+        self.image.set_alpha(
+            150
+        )
 
 
     def revivir(self):
@@ -317,13 +342,20 @@ class Player(pygame.sprite.Sprite):
         self.caido = False
         self.progreso_revivir = 0
 
+
+        # revive con 2 corazones
         self.vidas = min(
             2,
             self.max_vidas
         )
 
+
         self.actualizar_apariencia()
 
+
+    # ==============================================
+    # POWERUPS
+    # ==============================================
 
     def activar_powerup(self, tipo):
 
@@ -336,6 +368,7 @@ class Player(pygame.sprite.Sprite):
                 + self.duracion_rapid_fire
             )
 
+            # si estaba recargando lo saca de reload
             self.sobrecalentado = False
             self.disparos = 0
 
@@ -348,22 +381,36 @@ class Player(pygame.sprite.Sprite):
         self.actualizar_apariencia()
 
 
+    # ==============================================
+    # CAMBIAR SPRITE
+    # ==============================================
+
     def actualizar_apariencia(self):
 
         centro = self.rect.center
 
 
-        if self.sobrecalentado and self.escudo and self.rapid_fire:
+        if (
+            self.sobrecalentado
+            and self.escudo
+            and self.rapid_fire
+        ):
 
             self.image = JorgeReloadShieldRapidPNG_scaled
 
 
-        elif self.sobrecalentado and self.escudo:
+        elif (
+            self.sobrecalentado
+            and self.escudo
+        ):
 
             self.image = JorgeReloadShieldPNG_scaled
 
 
-        elif self.sobrecalentado and self.rapid_fire:
+        elif (
+            self.sobrecalentado
+            and self.rapid_fire
+        ):
 
             self.image = JorgeReloadRapidPNG_scaled
 
@@ -373,17 +420,27 @@ class Player(pygame.sprite.Sprite):
             self.image = JorgeReloadPNG_scaled
 
 
-        elif self.escudo and self.rapid_fire and self.sprint:
+        elif (
+            self.escudo
+            and self.rapid_fire
+            and self.sprint
+        ):
 
             self.image = JorgeShieldRapidSprintPNG_scaled
 
 
-        elif self.escudo and self.rapid_fire:
+        elif (
+            self.escudo
+            and self.rapid_fire
+        ):
 
             self.image = JorgeShieldRapidPNG_scaled
 
 
-        elif self.rapid_fire and self.sprint:
+        elif (
+            self.rapid_fire
+            and self.sprint
+        ):
 
             self.image = JorgeRapidSprintPNG_scaled
 
@@ -393,7 +450,10 @@ class Player(pygame.sprite.Sprite):
             self.image = JorgeRapidPNG_scaled
 
 
-        elif self.escudo and self.sprint:
+        elif (
+            self.escudo
+            and self.sprint
+        ):
 
             self.image = JorgeShieldSprintPNG_scaled
 
@@ -418,13 +478,20 @@ class Player(pygame.sprite.Sprite):
         )
 
 
+    # ==============================================
     # DASH
+    # ==============================================
+
     def dash(self, pressed_keys):
 
         ahora = pygame.time.get_ticks()
 
 
-        if ahora - self.ultimo_dash < self.cooldown_dash:
+        if (
+            ahora - self.ultimo_dash
+            < self.cooldown_dash
+        ):
+
             return None
 
 
@@ -445,7 +512,11 @@ class Player(pygame.sprite.Sprite):
             direccion_x += 1
 
 
-        if direccion_x == 0 and direccion_y == 0:
+        if (
+            direccion_x == 0
+            and direccion_y == 0
+        ):
+
             return None
 
 
@@ -459,22 +530,41 @@ class Player(pygame.sprite.Sprite):
 
 
         self.rect.x += int(
-            direccion.x * self.distancia_dash
+            direccion.x
+            * self.distancia_dash
         )
+
 
         self.rect.y += int(
-            direccion.y * self.distancia_dash
+            direccion.y
+            * self.distancia_dash
         )
 
 
-        self.rect.left = max(self.rect.left, 0)
-        self.rect.right = min(self.rect.right, self.screen_width)
+        # no dejar que salga con dash
+        self.rect.left = max(
+            self.rect.left,
+            0
+        )
 
-        self.rect.top = max(self.rect.top, 0)
-        self.rect.bottom = min(self.rect.bottom, self.screen_height)
+        self.rect.right = min(
+            self.rect.right,
+            self.screen_width
+        )
+
+        self.rect.top = max(
+            self.rect.top,
+            0
+        )
+
+        self.rect.bottom = min(
+            self.rect.bottom,
+            self.screen_height
+        )
 
 
         posicion_final = self.rect.center
+
 
         self.ultimo_dash = ahora
 
@@ -482,10 +572,16 @@ class Player(pygame.sprite.Sprite):
         self.sonido_dash.play()
 
 
-        return posicion_inicial, posicion_final
+        return (
+            posicion_inicial,
+            posicion_final
+        )
 
 
-    # slow del dragon M
+    # slow que aplica proyectil M
     def aplicar_slow(self):
 
-        self.fin_slow = pygame.time.get_ticks() + 2500
+        self.fin_slow = (
+            pygame.time.get_ticks()
+            + 2500
+        )
