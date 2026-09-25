@@ -22,7 +22,7 @@ def cambiar_modo_pantalla(pantalla_completa):
 #----
 
 
-def gameloop(screen):
+def gameloop(screen, cantidad_jugadores=1):
     # * Preparamos la escena de juego, cargando los elementos que se van a usar en el loop principal
 
     #---- FEATURE MUSICA Y SONIDO - MUSICA DE FONDO ----
@@ -58,8 +58,16 @@ def gameloop(screen):
     all_sprites.add(player)
 
     #---- FEATURE COOPERATIVO - CREAR JUGADOR 2 ----
+    if cantidad_jugadores == 2:
+        dos_jugadores = True
+
+    else:
+        dos_jugadores = False
+
     player2 = Player2(screen)
-    all_sprites.add(player2)
+
+    if dos_jugadores:
+        all_sprites.add(player2)
     #----
 
     #---- FEATURE POWER UPS - CREAR GRUPO DE POWER UPS ----
@@ -240,7 +248,7 @@ def gameloop(screen):
                 #----
 
                 #---- FEATURE COOPERATIVO - EMBESTIDA JUGADOR 2 ----
-                if event.key == K_RSHIFT:
+                if event.key == K_RSHIFT and dos_jugadores:
 
                     resultado_embestida = player2.embestida(pygame.key.get_pressed())
 
@@ -300,7 +308,8 @@ def gameloop(screen):
             pressed_keys = pygame.key.get_pressed()
 
             player.update(pressed_keys)
-            player2.update(pressed_keys)
+            if dos_jugadores:
+                player2.update(pressed_keys)
             enemies.update()
             crosshair.update()
 
@@ -411,17 +420,19 @@ def gameloop(screen):
         #----
 
         #---- FEATURE COOPERATIVO - HUD JUGADOR 2 ----
-        for i in range(player2.vidas):
 
-            x = screen.get_width() - 54 - i * 40
-            screen.blit(icono_corazon, (x, 65))
+        if dos_jugadores:
+            for i in range(player2.vidas):
 
-        barra_x = screen.get_width() - 220
-        tiempo_embestida = tiempo_visual - player2.ultima_embestida
-        mana_embestida = min(1, tiempo_embestida / player2.cooldown_embestida)
+                x = screen.get_width() - 54 - i * 40
+                screen.blit(icono_corazon, (x, 65))
 
-        pygame.draw.rect(screen, (30, 30, 35), (barra_x, 105, 200, 9), border_radius=4)
-        pygame.draw.rect(screen, (80, 180, 255), (barra_x, 105, int(200 * mana_embestida), 9), border_radius=4)
+            barra_x = screen.get_width() - 220
+            tiempo_embestida = tiempo_visual - player2.ultima_embestida
+            mana_embestida = min(1, tiempo_embestida / player2.cooldown_embestida)
+
+            pygame.draw.rect(screen, (30, 30, 35), (barra_x, 105, 200, 9), border_radius=4)
+            pygame.draw.rect(screen, (80, 180, 255), (barra_x, 105, int(200 * mana_embestida), 9), border_radius=4)
 
 
         #---- FEATURE POWER UPS - BARRA RAPID FIRE COMPACTA ----
@@ -489,8 +500,8 @@ def gameloop(screen):
 
             #---- FEATURE COOPERATIVO - DAÑO JUGADOR 2 ----
             enemigos_tocando_2 = pygame.sprite.spritecollide(player2, enemies, False)
-
-            if enemigos_tocando_2:
+ 
+            if dos_jugadores and enemigos_tocando_2:
 
                 enemigos_tocando_2[0].kill()
                 sonido_damage.play()

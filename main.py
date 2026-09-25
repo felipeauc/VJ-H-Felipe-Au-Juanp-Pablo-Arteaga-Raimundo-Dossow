@@ -81,9 +81,10 @@ while running:
         continue
 
     #---- FEATURE PROGRESION DE NIVELES - ELEGIR NIVEL ----
-    if resultado_menu == "level1" or resultado_menu == "level2":
+    
+    if isinstance(resultado_menu, tuple):
 
-        nivel_actual = resultado_menu
+        nivel_actual, cantidad_jugadores = resultado_menu
         jugando = True
 
         while jugando:
@@ -91,10 +92,10 @@ while running:
             screen = pygame.display.get_surface()
 
             if nivel_actual == "level1":
-                resultado = game_scene.gameloop(screen)
+                resultado = game_scene.gameloop(screen, cantidad_jugadores)
 
             else:
-                resultado = game_scene_2.gameloop(screen)
+                resultado = game_scene_2.gameloop(screen, cantidad_jugadores)
 
             screen = pygame.display.get_surface()
 

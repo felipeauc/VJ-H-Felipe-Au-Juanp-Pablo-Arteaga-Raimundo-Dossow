@@ -42,6 +42,18 @@ def gameloop(screen, nivel_2_desbloqueado=True):
     boton_volver.center = (screen.get_width() // 2, 540)
     #----
 
+
+    #---- FEATURE COOPERATIVO - SELECCION DE JUGADORES ----
+    seleccionando_jugadores = False
+    cantidad_jugadores = 1
+
+    boton_1_jugador = pygame.Rect(0, 0, 280, 65)
+    boton_2_jugadores = pygame.Rect(0, 0, 280, 65)
+
+    boton_1_jugador.center = (screen.get_width() // 2, 360)
+    boton_2_jugadores.center = (screen.get_width() // 2, 450)
+    #----
+
     # Iniciamos el loop principal de la escena inicial
     while running:
 
@@ -54,6 +66,9 @@ def gameloop(screen, nivel_2_desbloqueado=True):
                     if seleccionando_nivel:
                         seleccionando_nivel = False
 
+                    elif seleccionando_jugadores:
+                        seleccionando_jugadores = False
+
                     else:
                         return "quit"
 
@@ -65,28 +80,46 @@ def gameloop(screen, nivel_2_desbloqueado=True):
 
                 if event.button == 1:
 
-                    if not seleccionando_nivel:
+                    if not seleccionando_nivel and not seleccionando_jugadores:
 
                         if boton_jugar.collidepoint(event.pos):
-                            seleccionando_nivel = True
+                            seleccionando_jugadores = True
 
                         elif boton_tienda.collidepoint(event.pos):
                             return "shop"
 
                         elif boton_salir.collidepoint(event.pos):
                             return "quit"
+                        
+                    #---- FEATURE COOPERATIVO - ELEGIR JUGADORES ----
+                    elif seleccionando_jugadores:
+
+                        if boton_1_jugador.collidepoint(event.pos):
+                            cantidad_jugadores = 1
+                            seleccionando_jugadores = False
+                            seleccionando_nivel = True
+
+                        elif boton_2_jugadores.collidepoint(event.pos):
+                            cantidad_jugadores = 2
+                            seleccionando_jugadores = False
+                            seleccionando_nivel = True
+
+                        elif boton_volver.collidepoint(event.pos):
+                            seleccionando_jugadores = False
+                    #----
 
                     else:
 
                         #---- FEATURE PROGRESION DE NIVELES - ELEGIR NIVEL ----
                         if boton_nivel1.collidepoint(event.pos):
-                            return "level1"
+                            return ("level1", cantidad_jugadores)
 
                         elif boton_nivel2.collidepoint(event.pos) and nivel_2_desbloqueado:
-                            return "level2"
+                            return ("level2", cantidad_jugadores)
 
                         elif boton_volver.collidepoint(event.pos):
                             seleccionando_nivel = False
+                            seleccionando_jugadores = True
                         #----
             #----
 
@@ -115,6 +148,16 @@ def gameloop(screen, nivel_2_desbloqueado=True):
                 (boton_nivel2, texto_n2),
                 (boton_volver, "VOLVER"),
         ]
+
+        #---- FEATURE COOPERATIVO - BOTONES DE JUGADORES ----
+        elif seleccionando_jugadores:
+
+            botones = [
+                (boton_1_jugador, "1 JUGADOR"),
+                (boton_2_jugadores, "2 JUGADORES"),
+                (boton_volver, "VOLVER"),
+            ]
+        #----
 
         else:
 
