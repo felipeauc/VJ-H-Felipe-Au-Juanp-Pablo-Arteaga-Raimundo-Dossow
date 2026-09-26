@@ -273,6 +273,11 @@ def gameloop(screen, cantidad_jugadores=1):
 
     clock = pygame.time.Clock()
 
+    recibio_dano = False
+    escudos_recogidos = 0
+    uso_rapid_fire = False
+    balas_disparadas = 0
+
     while True:
 
         screen.blit(
@@ -585,6 +590,7 @@ def gameloop(screen, cantidad_jugadores=1):
                     player.shoot(
                         pygame.mouse.get_pos()
                     )
+                balas_disparadas += 1
 
         # ===============================
         # UPDATE
@@ -813,12 +819,16 @@ def gameloop(screen, cantidad_jugadores=1):
                 bullet.rect
             )
 
+        if player.vidas < player.max_vidas:
+            recibio_dano = True
+
         # VIDA J1
         for i in range(player.vidas):
 
             x = 20 + i * 40
 
             if player.escudo:
+                escudos_recogidos += 1
                 icono = icono_corazon_shield
 
             else:
@@ -873,6 +883,7 @@ def gameloop(screen, cantidad_jugadores=1):
             )
 
             if player.rapid_fire:
+                uso_rapid_fire = True
                 icono = icono_flecha_rapid
 
             elif (
@@ -925,6 +936,9 @@ def gameloop(screen, cantidad_jugadores=1):
 
         if dos_jugadores:
 
+            if player2.vidas < player2.max_vidas:
+                recibio_dano = True
+            
             for i in range(player2.vidas):
 
                 x = (
@@ -934,6 +948,7 @@ def gameloop(screen, cantidad_jugadores=1):
                 )
 
                 if player2.escudo:
+                    escudos_recogidos += 1
                     icono = icono_corazon_shield
 
                 else:
@@ -1187,8 +1202,7 @@ def gameloop(screen, cantidad_jugadores=1):
                 pygame.mouse.set_visible(True)
 
                 return (
-                    "dead",
-                    estadistica
+                    "dead", estadistica, recibio_dano, escudos_recogidos, uso_rapid_fire, balas_disparadas
                 )
 
             estadistica += procesar_balas(

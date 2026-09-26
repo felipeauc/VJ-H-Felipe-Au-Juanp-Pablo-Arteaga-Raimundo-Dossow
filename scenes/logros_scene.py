@@ -17,14 +17,14 @@ def gameloop(screen, logros_desbloqueados):
         "Primeros Pasos", "Piloto Veterano", "Leyenda Galáctica",
         "Primera Paga", "Tanque Espacial", "Arsenal Infinito",
         "Intocable", "Fortaleza Espacial", "Sobrecarga",
-        "¿Eres nuevo?", "Pacifista", "Cliente VIP"
+        "¿Eres nuevo?", "Pacifista", "Héroe del reino"
     ]
     
     descripciones = [
         "Juega tu primera partida.", "Supera los 500 puntos.", "Alcanza los 1000 puntos.",
         "Acumula 100 coins totales.", "Alcanza el nivel 10 de Vida.", "Alcanza el nivel 10 de Munición.",
         "Gana 250 pts sin recibir daño.", "Recoge 3 escudos en una partida.", "Usa la ametralladora (Rapid Fire).",
-        "Muere con menos de 10 puntos.", "Llega a 100 pts sin disparar.", "Gasta 500 coins en una visita."
+        "Muere con menos de 10 puntos.", "Llega a 100 pts sin disparar.", "Derrota al Boss Final."
     ]
 
     while True:

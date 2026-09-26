@@ -461,6 +461,11 @@ def gameloop(
 
     clock = pygame.time.Clock()
 
+    recibio_dano = False
+    escudos_recogidos = 0
+    uso_rapid_fire = False
+    balas_disparadas = 0
+
     while True:
 
         screen.blit(
@@ -869,7 +874,8 @@ def gameloop(
                         pygame.mouse.get_pos()
                     )
 
-        # =================================
+                balas_disparadas += 1
+        # ===============================
         # UPDATE
         # =================================
 
@@ -1260,18 +1266,17 @@ def gameloop(
                 meteorito.rect
             )
 
-        # J1 HP
-        for i in range(
-            player.vidas
-        ):
+        if player.vidas < player.max_vidas:
+            recibio_dano = True
+
+        # vida Jorge
+        for i in range(player.vidas):
 
             x = 20 + i * 40
 
             if player.escudo:
-
-                icono = (
-                    icono_corazon_shield
-                )
+                escudos_recogidos += 1
+                icono = icono_corazon_shield
 
             else:
 
@@ -1326,10 +1331,8 @@ def gameloop(
             )
 
             if player.rapid_fire:
-
-                icono = (
-                    icono_flecha_rapid
-                )
+                icono = icono_flecha_rapid
+                uso_rapid_fire = True
 
             elif (
                 i
@@ -1355,6 +1358,9 @@ def gameloop(
         # J2 HUD
         if dos_jugadores:
 
+            if player2.vidas < player2.max_vidas:
+                recibio_dano = True
+            
             for i in range(
                 player2.vidas
             ):
@@ -1366,10 +1372,8 @@ def gameloop(
                 )
 
                 if player2.escudo:
-
-                    icono = (
-                        icono_corazon_shield
-                    )
+                    escudos_recogidos += 1
+                    icono = icono_corazon_shield
 
                 else:
 
@@ -2041,8 +2045,7 @@ def gameloop(
                 )
 
                 return (
-                    "victory",
-                    estadistica
+                    "victory", estadistica, recibio_dano, escudos_recogidos, uso_rapid_fire, balas_disparadas
                 )
 
         # =================================
