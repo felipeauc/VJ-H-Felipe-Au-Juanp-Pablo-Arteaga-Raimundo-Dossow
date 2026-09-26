@@ -29,33 +29,10 @@ from elements import (
 )
 
 
-def cambiar_modo_pantalla(
-    pantalla_completa
-):
+def hacer_dano(jugador, sonido):
 
-    if pantalla_completa:
-
-        return pygame.display.set_mode(
-            (1024, 768),
-            pygame.FULLSCREEN
-        )
-
-    return pygame.display.set_mode(
-        (1024, 768)
-    )
-
-
-def hacer_dano(
-    jugador,
-    sonido
-):
-
-    # P2 no recibe daño durante los 0.2s
-    if (
-        hasattr(jugador, "es_inmortal")
-        and jugador.es_inmortal()
-    ):
-
+    # invulnerabilidad del pajaro durante dash/360
+    if hasattr(jugador, "es_inmortal") and jugador.es_inmortal():
         return
 
     if jugador.escudo:
@@ -71,10 +48,11 @@ def hacer_dano(
             jugador.caer()
 
 
-def procesar_balas_enemigos(
+def procesar_balas_grupo(
     player,
-    enemies,
-    sonido_hit
+    grupo,
+    sonido_hit,
+    puntos_muerte=5
 ):
 
     puntos = 0
@@ -83,7 +61,7 @@ def procesar_balas_enemigos(
 
         golpeados = pygame.sprite.spritecollide(
             bala,
-            enemies,
+            grupo,
             False
         )
 
@@ -92,18 +70,23 @@ def procesar_balas_enemigos(
             if enemigo in bala.enemigos_golpeados:
                 continue
 
-            bala.enemigos_golpeados.add(
-                enemigo
-            )
+            bala.enemigos_golpeados.add(enemigo)
 
-            murio = enemigo.recibir_dano(
-                bala.dano
-            )
+            if hasattr(enemigo, "recibir_dano"):
+
+                murio = enemigo.recibir_dano(
+                    bala.dano
+                )
+
+            else:
+
+                enemigo.kill()
+                murio = True
 
             sonido_hit.play()
 
             if murio:
-                puntos += 5
+                puntos += puntos_muerte
 
             bala.kill()
 
@@ -150,9 +133,10 @@ def procesar_balas_boss(
             bala.kill()
 
 
-def ataque_360_nivel3(
+def ataque_360(
     player2,
     enemies,
+    subdragones,
     boss,
     boss_aparecio,
     centro,
@@ -163,7 +147,7 @@ def ataque_360_nivel3(
     puntos = 0
     pego = False
 
-    # enemigos antes del boss
+    # dragones pre boss
     if not boss_aparecio:
 
         for enemigo in enemies.sprites():
@@ -174,18 +158,12 @@ def ataque_360_nivel3(
                 centro
             )
 
-            radio_enemigo = (
-                max(
-                    enemigo.rect.width,
-                    enemigo.rect.height
-                )
-                / 2
-            )
+            radio_enemigo = max(
+                enemigo.rect.width,
+                enemigo.rect.height
+            ) / 2
 
-            if (
-                distancia
-                <= radio + radio_enemigo
-            ):
+            if distancia <= radio + radio_enemigo:
 
                 murio = enemigo.recibir_dano(
                     player2.dano_360
@@ -195,6 +173,31 @@ def ataque_360_nivel3(
 
                 if murio:
                     puntos += 5
+
+    # subdragones del boss
+    for enemigo in subdragones.sprites():
+
+        distancia = Vector2(
+            enemigo.rect.center
+        ).distance_to(
+            centro
+        )
+
+        radio_enemigo = max(
+            enemigo.rect.width,
+            enemigo.rect.height
+        ) / 2
+
+        if distancia <= radio + radio_enemigo:
+
+            murio = enemigo.recibir_dano(
+                player2.dano_360
+            )
+
+            pego = True
+
+            if murio:
+                puntos += 8
 
     # boss
     if (
@@ -209,18 +212,12 @@ def ataque_360_nivel3(
             centro
         )
 
-        radio_boss = (
-            max(
-                boss.rect.width,
-                boss.rect.height
-            )
-            / 2
-        )
+        radio_boss = max(
+            boss.rect.width,
+            boss.rect.height
+        ) / 2
 
-        if (
-            distancia
-            <= radio + radio_boss
-        ):
+        if distancia <= radio + radio_boss:
 
             boss.recibir_dano(
                 player2.dano_360_boss
@@ -261,6 +258,10 @@ def gameloop(
         "assets/hit.wav"
     )
 
+    sonido_powerup.set_volume(0.70)
+    sonido_damage.set_volume(0.75)
+    sonido_hit.set_volume(0.70)
+
     background_image = pygame.image.load(
         "assets/background_n3.png"
     ).convert()
@@ -274,40 +275,40 @@ def gameloop(
     )
 
     player = Player(screen)
-
-    crosshair = Crosshair()
-    pygame.mouse.set_visible(False)
-
-    enemies = pygame.sprite.Group()
-
-    all_sprites = pygame.sprite.Group()
-    all_sprites.add(player)
+    player2 = Player2(screen)
 
     dos_jugadores = (
         cantidad_jugadores == 2
     )
 
-    player2 = Player2(screen)
+    crosshair = Crosshair()
+
+    pygame.mouse.set_visible(False)
+
+    enemies = pygame.sprite.Group()
+    subdragones = pygame.sprite.Group()
+
+    all_sprites = pygame.sprite.Group()
+    all_sprites.add(player)
 
     if dos_jugadores:
         all_sprites.add(player2)
 
     onda = OndaExpansiva()
 
+    powerups = pygame.sprite.Group()
+
     proyectiles_enemigos = pygame.sprite.Group()
+    proyectiles_boss = pygame.sprite.Group()
+    meteoritos = pygame.sprite.Group()
 
     boss = None
     boss_group = pygame.sprite.Group()
-
-    proyectiles_boss = pygame.sprite.Group()
-    meteoritos = pygame.sprite.Group()
 
     boss_aparecio = False
 
     victoria = False
     inicio_victoria = 0
-
-    powerups = pygame.sprite.Group()
 
     ADDENEMY = pygame.USEREVENT + 1
 
@@ -332,7 +333,9 @@ def gameloop(
         (44, 16)
     )
 
-    icono_flecha_sombra = icono_flecha.copy()
+    icono_flecha_sombra = (
+        icono_flecha.copy()
+    )
 
     icono_flecha_sombra.fill(
         (0, 0, 0, 255),
@@ -366,8 +369,51 @@ def gameloop(
         (34, 34)
     )
 
+    font_puntos = pygame.font.Font(
+        None,
+        45
+    )
+
+    font_boss = pygame.font.Font(
+        None,
+        34
+    )
+
+    font_fase = pygame.font.Font(
+        None,
+        26
+    )
+
+    font_aviso = pygame.font.Font(
+        None,
+        50
+    )
+
+    font_victoria = pygame.font.Font(
+        None,
+        85
+    )
+
+    font_habilidad = pygame.font.Font(
+        None,
+        20
+    )
+
+    font_pausa = pygame.font.Font(
+        None,
+        75
+    )
+
+    font_boton = pygame.font.Font(
+        None,
+        35
+    )
+
     estelas_dash = []
     duracion_estela = 300
+
+    estadistica = 0
+    ultimo_segundo = pygame.time.get_ticks()
 
     pausado = False
     inicio_pausa = 0
@@ -413,44 +459,6 @@ def gameloop(
         560
     )
 
-    font_pausa = pygame.font.Font(
-        None,
-        75
-    )
-
-    font_boton = pygame.font.Font(
-        None,
-        35
-    )
-
-    font_puntos = pygame.font.Font(
-        None,
-        45
-    )
-
-    font_boss = pygame.font.Font(
-        None,
-        34
-    )
-
-    font_aviso = pygame.font.Font(
-        None,
-        50
-    )
-
-    font_victoria = pygame.font.Font(
-        None,
-        85
-    )
-
-    font_habilidad = pygame.font.Font(
-        None,
-        20
-    )
-
-    estadistica = 0
-    ultimo_segundo = pygame.time.get_ticks()
-
     clock = pygame.time.Clock()
 
     while True:
@@ -460,20 +468,22 @@ def gameloop(
             (0, 0)
         )
 
-        # ===============================
+        # =================================
         # EVENTOS
-        # ===============================
+        # =================================
 
         for event in pygame.event.get():
 
             if event.type == QUIT:
 
                 pygame.mixer.music.stop()
-                pygame.mouse.set_visible(True)
+
+                pygame.mouse.set_visible(
+                    True
+                )
 
                 return "quit"
 
-            # PAUSA
             if pausado:
 
                 reanudar = False
@@ -482,7 +492,6 @@ def gameloop(
                     event.type == KEYDOWN
                     and event.key == K_ESCAPE
                 ):
-
                     reanudar = True
 
                 if (
@@ -493,7 +502,6 @@ def gameloop(
                     if boton_reanudar.collidepoint(
                         event.pos
                     ):
-
                         reanudar = True
 
                     elif boton_inicio.collidepoint(
@@ -501,7 +509,10 @@ def gameloop(
                     ):
 
                         pygame.mixer.music.stop()
-                        pygame.mouse.set_visible(True)
+
+                        pygame.mouse.set_visible(
+                            True
+                        )
 
                         return "menu"
 
@@ -509,11 +520,22 @@ def gameloop(
                         event.pos
                     ):
 
-                        pantalla_completa = not pantalla_completa
-
-                        screen = cambiar_modo_pantalla(
-                            pantalla_completa
+                        pantalla_completa = (
+                            not pantalla_completa
                         )
+
+                        if pantalla_completa:
+
+                            screen = pygame.display.set_mode(
+                                (1024, 768),
+                                pygame.FULLSCREEN
+                            )
+
+                        else:
+
+                            screen = pygame.display.set_mode(
+                                (1024, 768)
+                            )
 
                         background_image = pygame.image.load(
                             "assets/background_n3.png"
@@ -532,7 +554,10 @@ def gameloop(
                     ):
 
                         pygame.mixer.music.stop()
-                        pygame.mouse.set_visible(True)
+
+                        pygame.mouse.set_visible(
+                            True
+                        )
 
                         return "quit"
 
@@ -543,7 +568,9 @@ def gameloop(
                         - inicio_pausa
                     )
 
-                    ultimo_segundo += tiempo_pausa
+                    ultimo_segundo += (
+                        tiempo_pausa
+                    )
 
                     if player.sobrecalentado:
                         player.inicio_sobrecalentamiento += tiempo_pausa
@@ -551,13 +578,26 @@ def gameloop(
                     if player.rapid_fire:
                         player.fin_rapid_fire += tiempo_pausa
 
-                    player.ultimo_dash += tiempo_pausa
+                    player.ultimo_dash += (
+                        tiempo_pausa
+                    )
 
-                    player2.ultima_embestida += tiempo_pausa
-                    player2.ultimo_360 += tiempo_pausa
+                    player2.ultima_embestida += (
+                        tiempo_pausa
+                    )
 
-                    if player2.inmortal_hasta > inicio_pausa:
-                        player2.inmortal_hasta += tiempo_pausa
+                    player2.ultimo_360 += (
+                        tiempo_pausa
+                    )
+
+                    if (
+                        player2.inmortal_hasta
+                        > inicio_pausa
+                    ):
+
+                        player2.inmortal_hasta += (
+                            tiempo_pausa
+                        )
 
                     if player2.mostrando_360:
 
@@ -565,36 +605,42 @@ def gameloop(
                         player2.fin_efecto_360 += tiempo_pausa
 
                     if player2.furia:
-                        player2.fin_furia += tiempo_pausa
+
+                        player2.fin_furia += (
+                            tiempo_pausa
+                        )
 
                     if (
                         boss is not None
                         and boss.alive()
                     ):
 
-                        boss.ultimo_ataque += tiempo_pausa
-
-                        if boss.fase_meteoritos:
-
-                            boss.inicio_fase_meteoritos += tiempo_pausa
-                            boss.ultimo_meteorito += tiempo_pausa
+                        boss.ajustar_pausa(
+                            tiempo_pausa
+                        )
 
                     for i in range(
                         len(estelas_dash)
                     ):
 
-                        inicio, fin, tiempo_inicio = estelas_dash[i]
+                        inicio, fin, tiempo_inicio = (
+                            estelas_dash[i]
+                        )
 
                         estelas_dash[i] = (
                             inicio,
                             fin,
-                            tiempo_inicio + tiempo_pausa
+                            tiempo_inicio
+                            + tiempo_pausa
                         )
 
                     pausado = False
 
                     pygame.mixer.music.unpause()
-                    pygame.mouse.set_visible(False)
+
+                    pygame.mouse.set_visible(
+                        False
+                    )
 
                 continue
 
@@ -603,12 +649,18 @@ def gameloop(
                 if event.key == K_ESCAPE:
 
                     pausado = True
-                    inicio_pausa = pygame.time.get_ticks()
+
+                    inicio_pausa = (
+                        pygame.time.get_ticks()
+                    )
 
                     pygame.mixer.music.pause()
-                    pygame.mouse.set_visible(True)
 
-                # dash Jorge
+                    pygame.mouse.set_visible(
+                        True
+                    )
+
+                # Jorge dash
                 if (
                     event.key == K_SPACE
                     and not player.caido
@@ -630,7 +682,7 @@ def gameloop(
                             )
                         )
 
-                # DASH PLAYER 2
+                # P2 DASH
                 if (
                     event.key == K_RSHIFT
                     and dos_jugadores
@@ -653,117 +705,92 @@ def gameloop(
                             )
                         )
 
-                        # contra boss
-                        if (
-                            boss is not None
-                            and boss.alive()
-                        ):
+                        golpeados = set()
 
-                            golpeo_boss = False
+                        # subdragones
+                        for paso in range(11):
 
-                            for paso in range(11):
+                            x = (
+                                inicio[0]
+                                + (
+                                    fin[0]
+                                    - inicio[0]
+                                )
+                                * paso / 10
+                            )
 
-                                x = (
-                                    inicio[0]
-                                    + (
-                                        fin[0]
-                                        - inicio[0]
-                                    )
-                                    * paso / 10
+                            y = (
+                                inicio[1]
+                                + (
+                                    fin[1]
+                                    - inicio[1]
+                                )
+                                * paso / 10
+                            )
+
+                            player2.rect.center = (
+                                x,
+                                y
+                            )
+
+                            for enemigo in pygame.sprite.spritecollide(
+                                player2,
+                                subdragones,
+                                False
+                            ):
+
+                                golpeados.add(
+                                    enemigo
                                 )
 
-                                y = (
-                                    inicio[1]
-                                    + (
-                                        fin[1]
-                                        - inicio[1]
-                                    )
-                                    * paso / 10
-                                )
+                            if not boss_aparecio:
 
-                                player2.rect.center = (
-                                    x,
-                                    y
-                                )
-
-                                if (
-                                    not boss.fase_meteoritos
-                                    and not golpeo_boss
-                                    and player2.rect.colliderect(
-                                        boss.rect
-                                    )
-                                ):
-
-                                    boss.recibir_dano(
-                                        player2.dano_embestida_boss
-                                    )
-
-                                    golpeo_boss = True
-
-                                    sonido_hit.play()
-
-                            player2.rect.center = fin
-
-                        # contra enemigos
-                        else:
-
-                            golpeados = set()
-
-                            for paso in range(11):
-
-                                x = (
-                                    inicio[0]
-                                    + (
-                                        fin[0]
-                                        - inicio[0]
-                                    )
-                                    * paso / 10
-                                )
-
-                                y = (
-                                    inicio[1]
-                                    + (
-                                        fin[1]
-                                        - inicio[1]
-                                    )
-                                    * paso / 10
-                                )
-
-                                player2.rect.center = (
-                                    x,
-                                    y
-                                )
-
-                                enemigos_dash = pygame.sprite.spritecollide(
+                                for enemigo in pygame.sprite.spritecollide(
                                     player2,
                                     enemies,
                                     False
-                                )
+                                ):
 
-                                for enemigo in enemigos_dash:
-                                    golpeados.add(enemigo)
-
-                            player2.rect.center = fin
-
-                            pego = False
-
-                            for enemigo in golpeados:
-
-                                if enemigo.alive():
-
-                                    murio = enemigo.recibir_dano(
-                                        player2.dano_embestida
+                                    golpeados.add(
+                                        enemigo
                                     )
 
-                                    pego = True
+                        player2.rect.center = fin
 
-                                    if murio:
+                        for enemigo in golpeados:
+
+                            if enemigo.alive():
+
+                                murio = enemigo.recibir_dano(
+                                    player2.dano_embestida
+                                )
+
+                                if murio:
+
+                                    if enemigo in subdragones:
+                                        estadistica += 8
+
+                                    else:
                                         estadistica += 5
 
-                            if pego:
+                        # golpe boss
+                        if (
+                            boss is not None
+                            and boss.alive()
+                            and not boss.fase_meteoritos
+                        ):
+
+                            if player2.rect.colliderect(
+                                boss.rect
+                            ):
+
+                                boss.recibir_dano(
+                                    player2.dano_embestida_boss
+                                )
+
                                 sonido_hit.play()
 
-                # ENTER = ATAQUE 360
+                # ENTER = 360
                 if (
                     event.key == K_RETURN
                     and dos_jugadores
@@ -776,9 +803,10 @@ def gameloop(
 
                         centro, radio = ataque
 
-                        estadistica += ataque_360_nivel3(
+                        estadistica += ataque_360(
                             player2,
                             enemies,
+                            subdragones,
                             boss,
                             boss_aparecio,
                             centro,
@@ -814,8 +842,13 @@ def gameloop(
                     tipo
                 )
 
-                enemies.add(enemigo)
-                all_sprites.add(enemigo)
+                enemies.add(
+                    enemigo
+                )
+
+                all_sprites.add(
+                    enemigo
+                )
 
             elif event.type == ADDPOWERUP:
 
@@ -836,9 +869,9 @@ def gameloop(
                         pygame.mouse.get_pos()
                     )
 
-        # ===============================
+        # =================================
         # UPDATE
-        # ===============================
+        # =================================
 
         if (
             not pausado
@@ -855,12 +888,18 @@ def gameloop(
                     pygame.mouse.get_pos()
                 )
 
-            pressed_keys = pygame.key.get_pressed()
+            pressed_keys = (
+                pygame.key.get_pressed()
+            )
 
             if not player.caido:
-                player.update(pressed_keys)
+
+                player.update(
+                    pressed_keys
+                )
 
             else:
+
                 player.bullets.update()
 
             if (
@@ -872,6 +911,23 @@ def gameloop(
                     pressed_keys
                 )
 
+            objetivos = []
+
+            if not player.caido:
+
+                objetivos.append(
+                    player.rect.center
+                )
+
+            if (
+                dos_jugadores
+                and not player2.caido
+            ):
+
+                objetivos.append(
+                    player2.rect.center
+                )
+
             if not boss_aparecio:
 
                 enemies.update(
@@ -879,44 +935,31 @@ def gameloop(
                     proyectiles_enemigos
                 )
 
+            subdragones.update(
+                objetivos
+            )
+
             proyectiles_enemigos.update()
+
             proyectiles_boss.update()
+
             meteoritos.update()
 
             powerups.update()
+
             crosshair.update()
 
-            # boss
             if (
                 boss is not None
                 and boss.alive()
             ):
 
-                objetivos = []
-
-                if not player.caido:
-
-                    objetivos.append(
-                        player.rect.center
-                    )
-
-                if (
-                    dos_jugadores
-                    and not player2.caido
-                ):
-
-                    objetivos.append(
-                        player2.rect.center
-                    )
-
                 boss.update(
                     objetivos,
                     proyectiles_boss,
-                    meteoritos
+                    meteoritos,
+                    subdragones
                 )
-
-                if boss.fase_meteoritos:
-                    proyectiles_boss.empty()
 
             # onda coop
             cargando = (
@@ -943,16 +986,24 @@ def gameloop(
                 centro_onda
             ):
 
+                # mata subdragones
+                estadistica += (
+                    len(subdragones)
+                    * 8
+                )
+
+                for enemigo in subdragones.sprites():
+                    enemigo.kill()
+
                 if (
                     boss is not None
                     and boss.alive()
+                    and not boss.fase_meteoritos
                 ):
 
-                    if not boss.fase_meteoritos:
-
-                        boss.recibir_dano(5)
-
-                        proyectiles_boss.empty()
+                    boss.recibir_dano(
+                        5
+                    )
 
                 else:
 
@@ -977,7 +1028,7 @@ def gameloop(
                 estadistica += 1
                 ultimo_segundo += 1000
 
-            # aparece boss
+            # BOSS APARECE
             if (
                 estadistica >= 300
                 and not boss_aparecio
@@ -1002,18 +1053,26 @@ def gameloop(
                 )
 
         if pausado:
-            tiempo_visual = inicio_pausa
+
+            tiempo_visual = (
+                inicio_pausa
+            )
 
         else:
-            tiempo_visual = pygame.time.get_ticks()
 
-        # ===============================
+            tiempo_visual = (
+                pygame.time.get_ticks()
+            )
+
+        # =================================
         # ESTELA DASH
-        # ===============================
+        # =================================
 
         for estela in estelas_dash[:]:
 
-            inicio, fin, tiempo_inicio = estela
+            inicio, fin, tiempo_inicio = (
+                estela
+            )
 
             pasado = (
                 tiempo_visual
@@ -1023,7 +1082,9 @@ def gameloop(
             if pasado >= duracion_estela:
 
                 if not pausado:
-                    estelas_dash.remove(estela)
+                    estelas_dash.remove(
+                        estela
+                    )
 
                 continue
 
@@ -1031,7 +1092,8 @@ def gameloop(
                 200
                 * (
                     1
-                    - pasado / duracion_estela
+                    - pasado
+                    / duracion_estela
                 )
             )
 
@@ -1074,15 +1136,22 @@ def gameloop(
                 (0, 0)
             )
 
-        # ===============================
+        # =================================
         # DIBUJO
-        # ===============================
+        # =================================
 
         for entity in all_sprites:
 
             screen.blit(
                 entity.image,
                 entity.rect
+            )
+
+        for dragon in subdragones:
+
+            screen.blit(
+                dragon.image,
+                dragon.rect
             )
 
         for jefe in boss_group:
@@ -1093,7 +1162,10 @@ def gameloop(
             )
 
         if dos_jugadores:
-            player2.dibujar_360(screen)
+
+            player2.dibujar_360(
+                screen
+            )
 
         if dos_jugadores:
 
@@ -1188,15 +1260,21 @@ def gameloop(
                 meteorito.rect
             )
 
-        # vida Jorge
-        for i in range(player.vidas):
+        # J1 HP
+        for i in range(
+            player.vidas
+        ):
 
             x = 20 + i * 40
 
             if player.escudo:
-                icono = icono_corazon_shield
+
+                icono = (
+                    icono_corazon_shield
+                )
 
             else:
+
                 icono = icono_corazon
 
             screen.blit(
@@ -1204,14 +1282,14 @@ def gameloop(
                 (x, 20)
             )
 
-        # puntaje
+        # PUNTOS
         texto_puntos = font_puntos.render(
             f"PUNTOS: {estadistica}",
             True,
             (255, 255, 255)
         )
 
-        sombra_puntos = font_puntos.render(
+        sombra = font_puntos.render(
             f"PUNTOS: {estadistica}",
             True,
             (0, 0, 0)
@@ -1224,7 +1302,7 @@ def gameloop(
         )
 
         screen.blit(
-            sombra_puntos,
+            sombra,
             (px + 2, 22)
         )
 
@@ -1233,7 +1311,7 @@ def gameloop(
             (px, 20)
         )
 
-        # ammo
+        # AMMO J1
         for i in range(
             player.max_disparos
         ):
@@ -1248,61 +1326,33 @@ def gameloop(
             )
 
             if player.rapid_fire:
-                icono = icono_flecha_rapid
+
+                icono = (
+                    icono_flecha_rapid
+                )
 
             elif (
                 i
                 >= player.max_disparos
                 - player.disparos
             ):
-                icono = icono_flecha_sombra
+
+                icono = (
+                    icono_flecha_sombra
+                )
 
             else:
-                icono = icono_flecha
+
+                icono = (
+                    icono_flecha
+                )
 
             screen.blit(
                 icono,
                 (x, 62)
             )
 
-        # dash Jorge
-        progreso_dash = min(
-            1,
-            (
-                tiempo_visual
-                - player.ultimo_dash
-            )
-            / player.cooldown_dash
-        )
-
-        pygame.draw.rect(
-            screen,
-            (30, 30, 35),
-            (
-                20,
-                90,
-                200,
-                9
-            ),
-            border_radius=4
-        )
-
-        pygame.draw.rect(
-            screen,
-            (255, 200, 40),
-            (
-                20,
-                90,
-                int(
-                    200
-                    * progreso_dash
-                ),
-                9
-            ),
-            border_radius=4
-        )
-
-        # HUD P2
+        # J2 HUD
         if dos_jugadores:
 
             for i in range(
@@ -1316,10 +1366,16 @@ def gameloop(
                 )
 
                 if player2.escudo:
-                    icono = icono_corazon_shield
+
+                    icono = (
+                        icono_corazon_shield
+                    )
 
                 else:
-                    icono = icono_corazon
+
+                    icono = (
+                        icono_corazon
+                    )
 
                 screen.blit(
                     icono,
@@ -1331,7 +1387,7 @@ def gameloop(
                 - 220
             )
 
-            progreso_dash2 = min(
+            progreso_dash = min(
                 1,
                 (
                     tiempo_visual
@@ -1340,10 +1396,8 @@ def gameloop(
                 / player2.cooldown_embestida
             )
 
-            color_dash = (
-                (255, 120, 40)
-                if player2.furia
-                else (80, 180, 255)
+            progreso_360 = (
+                player2.progreso_360()
             )
 
             screen.blit(
@@ -1366,33 +1420,21 @@ def gameloop(
                     105,
                     200,
                     8
-                ),
-                border_radius=4
+                )
             )
 
             pygame.draw.rect(
                 screen,
-                color_dash,
+                (80, 180, 255),
                 (
                     barra_x,
                     105,
                     int(
                         200
-                        * progreso_dash2
+                        * progreso_dash
                     ),
                     8
-                ),
-                border_radius=4
-            )
-
-            progreso_360 = (
-                player2.progreso_360()
-            )
-
-            color_360 = (
-                (255, 120, 40)
-                if player2.furia
-                else (120, 230, 255)
+                )
             )
 
             screen.blit(
@@ -1415,13 +1457,12 @@ def gameloop(
                     122,
                     200,
                     8
-                ),
-                border_radius=4
+                )
             )
 
             pygame.draw.rect(
                 screen,
-                color_360,
+                (120, 230, 255),
                 (
                     barra_x,
                     122,
@@ -1430,11 +1471,13 @@ def gameloop(
                         * progreso_360
                     ),
                     8
-                ),
-                border_radius=4
+                )
             )
 
-        # aviso antes boss
+        # =================================
+        # BOSS HUD
+        # =================================
+
         if not boss_aparecio:
 
             faltan = max(
@@ -1442,15 +1485,15 @@ def gameloop(
                 300 - estadistica
             )
 
-            texto_boss = font_boss.render(
+            aviso = font_boss.render(
                 f"BOSS EN {faltan} PTS",
                 True,
                 (255, 100, 100)
             )
 
             screen.blit(
-                texto_boss,
-                texto_boss.get_rect(
+                aviso,
+                aviso.get_rect(
                     center=(
                         screen.get_width()
                         // 2,
@@ -1459,7 +1502,6 @@ def gameloop(
                 )
             )
 
-        # barra boss
         if (
             boss is not None
             and boss.alive()
@@ -1482,7 +1524,7 @@ def gameloop(
                 (30, 30, 35),
                 (
                     barra_x,
-                    55,
+                    52,
                     500,
                     22
                 ),
@@ -1494,7 +1536,7 @@ def gameloop(
                 (210, 35, 35),
                 (
                     barra_x,
-                    55,
+                    52,
                     int(
                         500
                         * porcentaje
@@ -1509,7 +1551,7 @@ def gameloop(
                 (255, 210, 90),
                 (
                     barra_x,
-                    55,
+                    52,
                     500,
                     22
                 ),
@@ -1518,7 +1560,7 @@ def gameloop(
             )
 
             texto_boss = font_boss.render(
-                f"DRAGON KING   {boss.vidas:g}/{boss.max_vidas:g}",
+                f"DRAGON KING  {boss.vidas:g}/{boss.max_vidas:g}",
                 True,
                 (255, 255, 255)
             )
@@ -1529,7 +1571,24 @@ def gameloop(
                     center=(
                         screen.get_width()
                         // 2,
-                        40
+                        35
+                    )
+                )
+            )
+
+            texto_fase = font_fase.render(
+                f"FASE {boss.fase_actual} / 5",
+                True,
+                (255, 190, 80)
+            )
+
+            screen.blit(
+                texto_fase,
+                texto_fase.get_rect(
+                    center=(
+                        screen.get_width()
+                        // 2,
+                        87
                     )
                 )
             )
@@ -1541,9 +1600,9 @@ def gameloop(
         ):
 
             aviso = font_aviso.render(
-                "LLUVIA DE METEORITOS",
+                "SOBREVIVE",
                 True,
-                (255, 120, 40)
+                (255, 90, 50)
             )
 
             screen.blit(
@@ -1552,21 +1611,21 @@ def gameloop(
                     center=(
                         screen.get_width()
                         // 2,
-                        110
+                        120
                     )
                 )
             )
 
-        # ===============================
+        # =================================
         # COLISIONES
-        # ===============================
+        # =================================
 
         if (
             not pausado
             and not victoria
         ):
 
-            # proyectiles nivel 2 J1
+            # nivel2 projectiles J1
             if not player.caido:
 
                 impactos = pygame.sprite.spritecollide(
@@ -1588,7 +1647,7 @@ def gameloop(
                             sonido_damage
                         )
 
-            # proyectiles nivel 2 P2
+            # proyectiles normales P2
             if (
                 dos_jugadores
                 and not player2.caido
@@ -1609,114 +1668,101 @@ def gameloop(
                             sonido_damage
                         )
 
-            # proyectiles boss J1
+            # BOSS BULLETS
             if not player.caido:
 
-                impactos = pygame.sprite.spritecollide(
+                if pygame.sprite.spritecollide(
                     player,
                     proyectiles_boss,
                     True
-                )
-
-                if impactos:
+                ):
 
                     hacer_dano(
                         player,
                         sonido_damage
                     )
 
-            # proyectiles boss P2
             if (
                 dos_jugadores
                 and not player2.caido
             ):
 
-                impactos = pygame.sprite.spritecollide(
+                if pygame.sprite.spritecollide(
                     player2,
                     proyectiles_boss,
                     True
-                )
-
-                if impactos:
+                ):
 
                     hacer_dano(
                         player2,
                         sonido_damage
                     )
 
-            # meteoritos J1
+            # METEORITOS
             if not player.caido:
 
-                impactos = pygame.sprite.spritecollide(
+                if pygame.sprite.spritecollide(
                     player,
                     meteoritos,
                     True
-                )
-
-                if impactos:
+                ):
 
                     hacer_dano(
                         player,
                         sonido_damage
                     )
 
-            # meteoritos P2
             if (
                 dos_jugadores
                 and not player2.caido
             ):
 
-                impactos = pygame.sprite.spritecollide(
+                if pygame.sprite.spritecollide(
                     player2,
                     meteoritos,
                     True
-                )
-
-                if impactos:
+                ):
 
                     hacer_dano(
                         player2,
                         sonido_damage
                     )
 
-            # powers J1
+            # SUBDRAGONES
             if not player.caido:
 
-                recogidos = pygame.sprite.spritecollide(
+                tocando = pygame.sprite.spritecollide(
                     player,
-                    powerups,
+                    subdragones,
                     True
                 )
 
-                for powerup in recogidos:
+                if tocando:
 
-                    sonido_powerup.play()
-
-                    player.activar_powerup(
-                        powerup.tipo
+                    hacer_dano(
+                        player,
+                        sonido_damage
                     )
 
-            # powers P2
             if (
                 dos_jugadores
                 and not player2.caido
             ):
 
-                recogidos = pygame.sprite.spritecollide(
+                tocando = pygame.sprite.spritecollide(
                     player2,
-                    powerups,
+                    subdragones,
                     True
                 )
 
-                for powerup in recogidos:
+                if tocando:
 
-                    sonido_powerup.play()
-
-                    player2.activar_powerup(
-                        powerup.tipo
+                    hacer_dano(
+                        player2,
+                        sonido_damage
                     )
 
-            # enemigos normales J1
+            # enemigos normales antes boss
             if (
                 not boss_aparecio
                 and not player.caido
@@ -1737,7 +1783,6 @@ def gameloop(
                         sonido_damage
                     )
 
-            # enemigos normales P2
             if (
                 not boss_aparecio
                 and dos_jugadores
@@ -1759,7 +1804,7 @@ def gameloop(
                         sonido_damage
                     )
 
-            # boss haciendo embestida
+            # boss dash
             if (
                 boss is not None
                 and boss.alive()
@@ -1788,15 +1833,44 @@ def gameloop(
                     )
                 ):
 
-                    # si P2 esta inmortal no recibe el golpe
-                    if not player2.es_inmortal():
+                    hacer_dano(
+                        player2,
+                        sonido_damage
+                    )
 
-                        hacer_dano(
-                            player2,
-                            sonido_damage
-                        )
+                    boss.terminar_embestida()
 
-                        boss.terminar_embestida()
+            # POWERUPS
+            if not player.caido:
+
+                for powerup in pygame.sprite.spritecollide(
+                    player,
+                    powerups,
+                    True
+                ):
+
+                    sonido_powerup.play()
+
+                    player.activar_powerup(
+                        powerup.tipo
+                    )
+
+            if (
+                dos_jugadores
+                and not player2.caido
+            ):
+
+                for powerup in pygame.sprite.spritecollide(
+                    player2,
+                    powerups,
+                    True
+                ):
+
+                    sonido_powerup.play()
+
+                    player2.activar_powerup(
+                        powerup.tipo
+                    )
 
             # revive
             if dos_jugadores:
@@ -1837,6 +1911,30 @@ def gameloop(
 
                             sonido_powerup.play()
 
+            # P1 BULLETS
+            if not boss_aparecio:
+
+                estadistica += procesar_balas_grupo(
+                    player,
+                    enemies,
+                    sonido_hit,
+                    5
+                )
+
+            estadistica += procesar_balas_grupo(
+                player,
+                subdragones,
+                sonido_hit,
+                8
+            )
+
+            procesar_balas_boss(
+                player,
+                boss,
+                sonido_hit
+            )
+
+            # game over
             if dos_jugadores:
 
                 todos_caidos = (
@@ -1846,35 +1944,24 @@ def gameloop(
 
             else:
 
-                todos_caidos = player.caido
+                todos_caidos = (
+                    player.caido
+                )
 
             if todos_caidos:
 
                 pygame.mixer.music.stop()
-                pygame.mouse.set_visible(True)
+
+                pygame.mouse.set_visible(
+                    True
+                )
 
                 return (
                     "dead",
                     estadistica
                 )
 
-            # flechas vs dragones
-            if not boss_aparecio:
-
-                estadistica += procesar_balas_enemigos(
-                    player,
-                    enemies,
-                    sonido_hit
-                )
-
-            # flechas boss
-            procesar_balas_boss(
-                player,
-                boss,
-                sonido_hit
-            )
-
-            # victoria
+            # BOSS MUERTO
             if (
                 boss_aparecio
                 and boss is not None
@@ -1884,22 +1971,25 @@ def gameloop(
 
                 victoria = True
 
-                inicio_victoria = pygame.time.get_ticks()
+                inicio_victoria = (
+                    pygame.time.get_ticks()
+                )
 
                 proyectiles_boss.empty()
                 proyectiles_enemigos.empty()
                 meteoritos.empty()
+                subdragones.empty()
 
-                estadistica += 200
+                estadistica += 300
 
             screen.blit(
                 crosshair.image,
                 crosshair.rect
             )
 
-        # ===============================
+        # =================================
         # VICTORIA
-        # ===============================
+        # =================================
 
         if victoria:
 
@@ -1912,7 +2002,7 @@ def gameloop(
             )
 
             overlay.fill(
-                (0, 0, 0, 180)
+                (0, 0, 0, 190)
             )
 
             screen.blit(
@@ -1945,16 +2035,19 @@ def gameloop(
             ):
 
                 pygame.mixer.music.stop()
-                pygame.mouse.set_visible(True)
+
+                pygame.mouse.set_visible(
+                    True
+                )
 
                 return (
                     "victory",
                     estadistica
                 )
 
-        # ===============================
+        # =================================
         # PAUSA
-        # ===============================
+        # =================================
 
         if pausado:
 
@@ -1993,10 +2086,16 @@ def gameloop(
             )
 
             if pantalla_completa:
-                texto_pantalla = "MODO VENTANA"
+
+                texto_pantalla = (
+                    "MODO VENTANA"
+                )
 
             else:
-                texto_pantalla = "PANTALLA COMPLETA"
+
+                texto_pantalla = (
+                    "PANTALLA COMPLETA"
+                )
 
             mouse = pygame.mouse.get_pos()
 
@@ -2021,7 +2120,9 @@ def gameloop(
 
             for boton, texto in botones:
 
-                if boton.collidepoint(mouse):
+                if boton.collidepoint(
+                    mouse
+                ):
 
                     color = (
                         255,
@@ -2066,4 +2167,5 @@ def gameloop(
                 )
 
         pygame.display.flip()
+
         clock.tick(60)
