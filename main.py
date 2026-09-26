@@ -75,7 +75,6 @@ def guardar_logros(logros):
         for logro in logros:
             archivo.write(f"{logro}\n")
 
-
 # iniciar pygame
 pygame.init()
 
@@ -90,11 +89,9 @@ screen = pygame.display.set_mode(
     (SCREEN_WIDTH, SCREEN_HEIGHT)
 )
 
-
 max_puntaje, nivel_2_desbloqueado, coins = cargar_progreso()
 
 logros = cargar_logros()
-
 
 running = True
 

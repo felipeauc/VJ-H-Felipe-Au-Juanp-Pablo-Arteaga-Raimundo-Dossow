@@ -10,7 +10,7 @@ nombres_logros = [
     "Primeros Pasos", "Piloto Veterano", "Leyenda Galáctica",
     "Primera Paga", "Tanque Espacial", "Arsenal Infinito",
     "Intocable", "Fortaleza Espacial", "Sobrecarga Láser",
-    "Houston, hay un problema", "Pacifista", "Cliente VIP"
+    "Houston, hay un problema", "Pacifista", "Héroe del reino"
 ]
 
 def reproducir_sonido():
