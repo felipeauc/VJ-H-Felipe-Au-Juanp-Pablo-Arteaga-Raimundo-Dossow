@@ -10,23 +10,47 @@ import customization
 from elements import Crosshair, Enemy, Player, PowerUp, Player2, OndaExpansiva
 
 
-#---- FEATURE MENU PAUSA - CAMBIAR MODO DE PANTALLA ----
 def cambiar_modo_pantalla(pantalla_completa):
 
     if pantalla_completa:
-        screen = pygame.display.set_mode((1024, 768), pygame.FULLSCREEN)
+        return pygame.display.set_mode((1024, 768), pygame.FULLSCREEN)
 
-    else:
-        screen = pygame.display.set_mode((1024, 768))
-
-    return screen
-#----
+    return pygame.display.set_mode((1024, 768))
 
 
-def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
-    # * Preparamos la escena de juego, cargando los elementos que se van a usar en el loop principal
+# balas con penetracion contra los bichos normales
+def procesar_balas(player, enemies, sonido_hit):
 
-    #---- FEATURE MUSICA Y SONIDO - MUSICA DE FONDO ----
+    puntos = 0
+
+    for bala in player.bullets.sprites():
+
+        golpeados = pygame.sprite.spritecollide(bala, enemies, False)
+
+        for enemigo in golpeados:
+
+            if enemigo in bala.enemigos_golpeados:
+                continue
+
+            bala.enemigos_golpeados.add(enemigo)
+
+            enemigo.kill()
+            puntos += 5
+
+            sonido_hit.play()
+
+            # kill ahora gasta una penetracion
+            bala.kill()
+
+            if not bala.alive():
+                break
+
+    return puntos
+
+
+def gameloop(screen, cantidad_jugadores=1):
+
+    # audio
     pygame.mixer.music.load("assets/background.ogg")
     pygame.mixer.music.set_volume(0.30)
     pygame.mixer.music.play(-1)
@@ -38,57 +62,39 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
     sonido_powerup.set_volume(0.70)
     sonido_damage.set_volume(0.75)
     sonido_hit.set_volume(0.70)
-    #----
 
-    #---- FEATURE TIENDA - FONDO SELECCIONADO ----
+    # fondo elegido en tienda
     background_image = pygame.image.load(customization.obtener_asset("background")).convert()
     background_image = pygame.transform.scale(background_image, (screen.get_width(), screen.get_height()))
-    #----
 
-    # ? Crear la instancia de jugador
-    player = Player(screen, nivel_vida, nivel_balas)
+    player = Player(screen)
 
-    #---- FEATURE MIRA ----
     crosshair = Crosshair()
     pygame.mouse.set_visible(False)
-    #----
 
-    # ? Crear los grupos de sprites
     enemies = pygame.sprite.Group()
     all_sprites = pygame.sprite.Group()
     all_sprites.add(player)
 
-    #---- FEATURE COOPERATIVO - CREAR JUGADOR 2 ----
-    if cantidad_jugadores == 2:
-        dos_jugadores = True
+    # coop
+    dos_jugadores = cantidad_jugadores == 2
 
-    else:
-        dos_jugadores = False
-
-    player2 = Player2(screen, nivel_vida, nivel_balas)
+    player2 = Player2(screen)
 
     if dos_jugadores:
         all_sprites.add(player2)
-    #----
 
-    #---- FEATURE COOPERATIVO - CREAR ONDA EXPANSIVA ----
     onda = OndaExpansiva()
-    #----
 
-    #---- FEATURE POWER UPS - CREAR GRUPO DE POWER UPS ----
     powerups = pygame.sprite.Group()
-    #----
 
-    # ? Crear el generador de enemigos
     ADDENEMY = pygame.USEREVENT + 1
     pygame.time.set_timer(ADDENEMY, 600)
 
-    #---- FEATURE POWER UPS - CREAR GENERADOR DE POWER UPS ----
     ADDPOWERUP = pygame.USEREVENT + 2
     pygame.time.set_timer(ADDPOWERUP, 8000)
-    #----
 
-    #---- FEATURE POWER UPS - ICONOS DE MUNICION ----
+    # iconos balas
     icono_flecha = pygame.image.load(customization.obtener_asset("bullet")).convert_alpha()
     icono_flecha = pygame.transform.scale(icono_flecha, (44, 16))
 
@@ -97,22 +103,19 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
 
     icono_flecha_rapid = pygame.image.load("assets/bullet_rapid_fire.png").convert_alpha()
     icono_flecha_rapid = pygame.transform.scale(icono_flecha_rapid, (44, 16))
-    #----
 
-    #---- FEATURE VIDAS DEL JUGADOR - ICONOS CORAZON ----
+    # corazones
     icono_corazon = pygame.image.load("assets/heart.png").convert_alpha()
     icono_corazon = pygame.transform.scale(icono_corazon, (34, 34))
 
     icono_corazon_shield = pygame.image.load("assets/heart_shield.png").convert_alpha()
     icono_corazon_shield = pygame.transform.scale(icono_corazon_shield, (34, 34))
-    #----
 
-    #---- FEATURE HABILIDAD ESPECIAL - ESTELAS DASH ----
+    # dash trail
     estelas_dash = []
     duracion_estela = 300
-    #----
 
-    #---- FEATURE MENU PAUSA - CONFIGURACION ----
+    # pausa
     pausado = False
     inicio_pausa = 0
     pantalla_completa = bool(pygame.display.get_surface().get_flags() & pygame.FULLSCREEN)
@@ -129,24 +132,18 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
 
     font_pausa = pygame.font.Font(None, 75)
     font_boton = pygame.font.Font(None, 35)
-    #----
 
     estadistica = 0
     ultimo_segundo = pygame.time.get_ticks()
     font_puntos = pygame.font.Font(None, 45)
 
-    # ? Crear el reloj del juego
     clock = pygame.time.Clock()
 
-    running = True  # variable booleana para manejar el loop
+    while True:
 
-    # * Loop principal del juego, todo lo que ocurre en el juego se hace dentro de este loop
-    while running:
-
-        # ? Dibujar la imagen de fondo en la ventana
         screen.blit(background_image, (0, 0))
 
-        # Iteramos sobre cada evento en la cola
+        # ================= EVENTOS =================
         for event in pygame.event.get():
 
             if event.type == QUIT:
@@ -154,68 +151,22 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
                 pygame.mouse.set_visible(True)
                 return "quit"
 
-            #---- FEATURE MENU PAUSA - CONTROLES ----
+            # cosas menu pausa
             if pausado:
 
-                if event.type == KEYDOWN:
+                reanudar = False
 
-                    if event.key == K_ESCAPE:
-
-                        tiempo_pausa = pygame.time.get_ticks() - inicio_pausa
-
-                        if player.sobrecalentado:
-                            player.inicio_sobrecalentamiento += tiempo_pausa
-
-                        if player.rapid_fire:
-                            player.fin_rapid_fire += tiempo_pausa
-
-                        player.ultimo_dash += tiempo_pausa
-                        player2.ultima_embestida += tiempo_pausa
-
-                        if player2.furia:
-                            player2.fin_furia += tiempo_pausa
-
-                        for i in range(len(estelas_dash)):
-                            inicio, fin, tiempo_inicio = estelas_dash[i]
-                            estelas_dash[i] = (inicio, fin, tiempo_inicio + tiempo_pausa)
-
-                        pausado = False
-
-                        pygame.mixer.music.unpause()
-                        pygame.mouse.set_visible(False)
+                if event.type == KEYDOWN and event.key == K_ESCAPE:
+                    reanudar = True
 
                 if event.type == MOUSEBUTTONDOWN and event.button == 1:
 
                     if boton_reanudar.collidepoint(event.pos):
-
-                        tiempo_pausa = pygame.time.get_ticks() - inicio_pausa
-
-                        if player.sobrecalentado:
-                            player.inicio_sobrecalentamiento += tiempo_pausa
-
-                        if player.rapid_fire:
-                            player.fin_rapid_fire += tiempo_pausa
-
-                        player.ultimo_dash += tiempo_pausa
-                        player2.ultima_embestida += tiempo_pausa
-
-                        if player2.furia:
-                            player2.fin_furia += tiempo_pausa
-
-                        for i in range(len(estelas_dash)):
-                            inicio, fin, tiempo_inicio = estelas_dash[i]
-                            estelas_dash[i] = (inicio, fin, tiempo_inicio + tiempo_pausa)
-
-                        pausado = False
-
-                        pygame.mixer.music.unpause()
-                        pygame.mouse.set_visible(False)
+                        reanudar = True
 
                     elif boton_inicio.collidepoint(event.pos):
-
                         pygame.mixer.music.stop()
                         pygame.mouse.set_visible(True)
-
                         return "menu"
 
                     elif boton_pantalla.collidepoint(event.pos):
@@ -227,44 +178,62 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
                         background_image = pygame.transform.scale(background_image, (screen.get_width(), screen.get_height()))
 
                     elif boton_salir.collidepoint(event.pos):
-
                         pygame.mixer.music.stop()
                         pygame.mouse.set_visible(True)
-
                         return "quit"
 
+                if reanudar:
+
+                    tiempo_pausa = pygame.time.get_ticks() - inicio_pausa
+                    ultimo_segundo += tiempo_pausa
+
+                    if player.sobrecalentado:
+                        player.inicio_sobrecalentamiento += tiempo_pausa
+
+                    if player.rapid_fire:
+                        player.fin_rapid_fire += tiempo_pausa
+
+                    player.ultimo_dash += tiempo_pausa
+                    player2.ultima_embestida += tiempo_pausa
+
+                    if player2.furia:
+                        player2.fin_furia += tiempo_pausa
+
+                    for i in range(len(estelas_dash)):
+                        inicio, fin, tiempo_inicio = estelas_dash[i]
+                        estelas_dash[i] = (inicio, fin, tiempo_inicio + tiempo_pausa)
+
+                    pausado = False
+                    pygame.mixer.music.unpause()
+                    pygame.mouse.set_visible(False)
+
                 continue
-            #----
 
-            if event.type == KEYDOWN:  # se presiono una tecla?
+            if event.type == KEYDOWN:
 
-                #---- FEATURE MENU PAUSA - ACTIVAR PAUSA ----
                 if event.key == K_ESCAPE:
-
                     pausado = True
                     inicio_pausa = pygame.time.get_ticks()
-
                     pygame.mixer.music.pause()
                     pygame.mouse.set_visible(True)
-                #----
 
-                #---- FEATURE HABILIDAD ESPECIAL - ACTIVAR DASH ----
+                # dash Jorge
                 if event.key == K_SPACE and not player.caido:
 
                     resultado_dash = player.dash(pygame.key.get_pressed())
-                    
-                    if resultado_dash is not None:
-                                            inicio, fin = resultado_dash
-                                            estelas_dash.append((inicio, fin, pygame.time.get_ticks()))
-                #----
 
-                #---- FEATURE COOPERATIVO - EMBESTIDA JUGADOR 2 ----
+                    if resultado_dash is not None:
+                        inicio, fin = resultado_dash
+                        estelas_dash.append((inicio, fin, pygame.time.get_ticks()))
+
+                # embestida pato
                 if event.key == K_RSHIFT and dos_jugadores and not player2.caido:
 
-                    resultado_embestida = player2.embestida(pygame.key.get_pressed())
+                    resultado = player2.embestida(pygame.key.get_pressed())
 
-                    if resultado_embestida is not None:
-                        inicio, fin = resultado_embestida
+                    if resultado is not None:
+
+                        inicio, fin = resultado
                         estelas_dash.append((inicio, fin, pygame.time.get_ticks()))
 
                         golpeados = 0
@@ -273,6 +242,7 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
 
                             x = inicio[0] + (fin[0] - inicio[0]) * paso / 10
                             y = inicio[1] + (fin[1] - inicio[1]) * paso / 10
+
                             player2.rect.center = (x, y)
 
                             enemigos_golpeados = pygame.sprite.spritecollide(player2, enemies, True)
@@ -283,9 +253,7 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
                         if golpeados > 0:
                             estadistica += golpeados * 5
                             sonido_hit.play()
-                #----
 
-            # ? Generar enemigos
             elif event.type == ADDENEMY:
 
                 new_enemy = Enemy(screen)
@@ -293,29 +261,22 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
                 enemies.add(new_enemy)
                 all_sprites.add(new_enemy)
 
-            #---- FEATURE POWER UPS - GENERAR POWER UP ----
             elif event.type == ADDPOWERUP:
 
                 if len(powerups) == 0:
-                    new_powerup = PowerUp(screen)
-                    powerups.add(new_powerup)
-            #----
+                    powerups.add(PowerUp(screen))
 
-            # TODO (2.5): Disparar balas al hacer click con el mouse
             elif event.type == MOUSEBUTTONDOWN:
 
                 if event.button == 1 and not player.caido:
-                    mouse_pos = pygame.mouse.get_pos()
-                    player.shoot(mouse_pos)
+                    player.shoot(pygame.mouse.get_pos())
 
+        # ================= UPDATE =================
         if not pausado:
 
-            #---- FEATURE POWER UPS - DISPARO AUTOMATICO RAPID FIRE ----
             if player.rapid_fire and pygame.mouse.get_pressed()[0] and not player.caido:
                 player.shoot(pygame.mouse.get_pos())
-            #----
 
-            # ? Actualizar el estado interno de los sprites (posiciones, etc)
             pressed_keys = pygame.key.get_pressed()
 
             if not player.caido:
@@ -326,19 +287,13 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
 
             if dos_jugadores and not player2.caido:
                 player2.update(pressed_keys)
+
             enemies.update()
+            powerups.update()
             crosshair.update()
 
-            #---- FEATURE POWER UPS - ACTUALIZAR POWER UPS ----
-            powerups.update()
-            #----
-
-            #---- FEATURE COOPERATIVO - CARGAR ONDA EXPANSIVA ----
-            if dos_jugadores and not player.caido and not player2.caido:
-                cargando = pressed_keys[K_SPACE] and pressed_keys[K_RSHIFT]
-
-            else:
-                cargando = False
+            # onda coop
+            cargando = dos_jugadores and not player.caido and not player2.caido and pressed_keys[K_SPACE] and pressed_keys[K_RSHIFT]
 
             centro_x = (player.rect.centerx + player2.rect.centerx) // 2
             centro_y = (player.rect.centery + player2.rect.centery) // 2
@@ -349,49 +304,41 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
 
                 for enemigo in enemies.sprites():
                     enemigo.kill()
-            #----
 
-            ahora_puntos = pygame.time.get_ticks()
+            ahora = pygame.time.get_ticks()
 
-            if ahora_puntos - ultimo_segundo >= 1000:
+            if ahora - ultimo_segundo >= 1000:
                 estadistica += 1
                 ultimo_segundo += 1000
 
-        #---- FEATURE MENU PAUSA - TIEMPO VISUAL CONGELADO ----
-        if pausado:
-            tiempo_visual = inicio_pausa
+        tiempo_visual = inicio_pausa if pausado else pygame.time.get_ticks()
 
-        else:
-            tiempo_visual = pygame.time.get_ticks()
-        #----
-
-        #---- FEATURE HABILIDAD ESPECIAL - DIBUJAR ESTELA DASH ----
+        # trail dash
         for estela in estelas_dash[:]:
 
             inicio, fin, tiempo_inicio = estela
-            tiempo_pasado = tiempo_visual - tiempo_inicio
+            pasado = tiempo_visual - tiempo_inicio
 
-            if tiempo_pasado >= duracion_estela:
+            if pasado >= duracion_estela:
 
                 if not pausado:
                     estelas_dash.remove(estela)
 
                 continue
 
-            transparencia = int(200 * (1 - tiempo_pasado / duracion_estela))
-            superficie_estela = pygame.Surface((screen.get_width(), screen.get_height()), pygame.SRCALPHA)
+            alpha = int(200 * (1 - pasado / duracion_estela))
 
-            pygame.draw.line(superficie_estela, (255, 180, 0, transparencia), inicio, fin, 30)
-            pygame.draw.line(superficie_estela, (255, 245, 120, transparencia), inicio, fin, 9)
+            superficie = pygame.Surface((screen.get_width(), screen.get_height()), pygame.SRCALPHA)
+            pygame.draw.line(superficie, (255, 180, 0, alpha), inicio, fin, 30)
+            pygame.draw.line(superficie, (255, 245, 120, alpha), inicio, fin, 9)
 
-            screen.blit(superficie_estela, (0, 0))
-        #----
+            screen.blit(superficie, (0, 0))
 
-        # ? Dibujar los sprites actualizados en la ventana
+        # ================= DIBUJAR =================
         for entity in all_sprites:
             screen.blit(entity.image, entity.rect)
 
-        #---- FEATURE COOPERATIVO - BARRA DE REVIVIR ----
+        # barra revivir
         if dos_jugadores:
 
             for jugador in [player, player2]:
@@ -399,116 +346,92 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
                 if jugador.caido:
 
                     progreso = jugador.progreso_revivir / 300
+                    x = jugador.rect.centerx - 40
+                    y = jugador.rect.top - 14
 
-                    barra_x = jugador.rect.centerx - 40
-                    barra_y = jugador.rect.top - 14
+                    pygame.draw.rect(screen, (30, 30, 35), (x, y, 80, 8), border_radius=4)
+                    pygame.draw.rect(screen, (90, 230, 120), (x, y, int(80 * progreso), 8), border_radius=4)
 
-                    pygame.draw.rect(screen, (30, 30, 35), (barra_x, barra_y, 80, 8), border_radius=4)
-                    pygame.draw.rect(screen, (90, 230, 120), (barra_x, barra_y, int(80 * progreso), 8), border_radius=4)
-        #----
-
-        #---- FEATURE POWER UPS - DIBUJAR POWER UPS ----
         for powerup in powerups:
             screen.blit(powerup.image, powerup.rect)
-        #----
 
-        #---- FEATURE COOPERATIVO - DIBUJAR ONDA EXPANSIVA ----
         if onda.animacion > 0:
             screen.blit(onda.image, onda.rect)
-        #----
 
-        # TODO (2.5): Dibujar las balas en la ventana
-        for bullet in player.bullets:
-            screen.blit(bullet.image, bullet.rect)
+        for bala in player.bullets:
+            screen.blit(bala.image, bala.rect)
 
-        #---- FEATURE VIDAS DEL JUGADOR - HUD DE CORAZONES ----
-        corazones_visibles = min(player.vidas, 5)
+        # vida j1
+        for i in range(player.vidas):
 
-        for i in range(corazones_visibles):
             x = 20 + i * 40
-            
+
             if player.escudo:
                 screen.blit(icono_corazon_shield, (x, 20))
+
             else:
                 screen.blit(icono_corazon, (x, 20))
-        #----
 
-        sombra_puntos = font_puntos.render(f"PUNTOS: {estadistica}", True, (0, 0, 0))
+        # puntos
         texto_puntos = font_puntos.render(f"PUNTOS: {estadistica}", True, (255, 255, 255))
-        pos_x_puntos = screen.get_width() - texto_puntos.get_width() - 20
+        sombra_puntos = font_puntos.render(f"PUNTOS: {estadistica}", True, (0, 0, 0))
+        px = screen.get_width() - texto_puntos.get_width() - 20
 
-        screen.blit(sombra_puntos, (pos_x_puntos + 2, 22))
-        screen.blit(texto_puntos, (pos_x_puntos, 20))
+        screen.blit(sombra_puntos, (px + 2, 22))
+        screen.blit(texto_puntos, (px, 20))
 
-        #---- FEATURE POWER UPS - HUD DE MUNICION CON FLECHAS ----
-        inicio_x = 20
-        inicio_y = 62
-        separacion = 8
-        ancho_icono = icono_flecha.get_width()
+        # municion
+        for i in range(player.max_disparos):
 
-        balas_visibles = min(player.max_disparos, 5)
-        balas_llenas = player.max_disparos - player.disparos
-
-        for i in range(balas_visibles):
-            
-            x = inicio_x + i * (ancho_icono + separacion)
-            posicion_icono = (x, inicio_y)
+            x = 20 + i * (icono_flecha.get_width() + 8)
 
             if player.rapid_fire:
-                screen.blit(icono_flecha_rapid, posicion_icono)
+                screen.blit(icono_flecha_rapid, (x, 62))
 
-            elif i >= balas_llenas:
-                screen.blit(icono_flecha_sombra, posicion_icono)
+            elif i >= player.max_disparos - player.disparos:
+                screen.blit(icono_flecha_sombra, (x, 62))
 
             else:
-                screen.blit(icono_flecha, posicion_icono)
-        #----
+                screen.blit(icono_flecha, (x, 62))
 
-        #---- FEATURE HABILIDAD ESPECIAL - BARRA DE MANA DASH ----
-        mana_x = 20
-        mana_y = 90
-        mana_ancho = 200
-        mana_alto = 9
+        # barra dash
+        mana_dash = min(1, (tiempo_visual - player.ultimo_dash) / player.cooldown_dash)
 
-        tiempo_dash = tiempo_visual - player.ultimo_dash
-        mana_dash = min(1, tiempo_dash / player.cooldown_dash)
+        pygame.draw.rect(screen, (30, 30, 35), (20, 90, 200, 9), border_radius=4)
+        pygame.draw.rect(screen, (255, 200, 40), (20, 90, int(200 * mana_dash), 9), border_radius=4)
 
-        pygame.draw.rect(screen, (30, 30, 35), (mana_x, mana_y, mana_ancho, mana_alto), border_radius=4)
-        pygame.draw.rect(screen, (255, 200, 40), (mana_x, mana_y, int(mana_ancho * mana_dash), mana_alto), border_radius=4)
-        #----
+        # rapid fire
+        if player.rapid_fire:
 
-        #---- FEATURE COOPERATIVO - HUD JUGADOR 2 ----
+            restante = player.fin_rapid_fire - tiempo_visual
+            progreso = max(0, min(1, restante / player.duracion_rapid_fire))
 
+            pygame.draw.rect(screen, (35, 35, 40), (20, 106, 200, 5), border_radius=3)
+            pygame.draw.rect(screen, (255, 205, 40), (20, 106, int(200 * progreso), 5), border_radius=3)
+
+        # j2 hud
         if dos_jugadores:
-            corazones_visibles = min(player2.vidas, 5)
-            
-            for i in range(corazones_visibles):
+
+            for i in range(player2.vidas):
+
                 x = screen.get_width() - 54 - i * 40
+
                 if player2.escudo:
                     screen.blit(icono_corazon_shield, (x, 65))
+
                 else:
                     screen.blit(icono_corazon, (x, 65))
 
             barra_x = screen.get_width() - 220
-            tiempo_embestida = tiempo_visual - player2.ultima_embestida
-            mana_embestida = min(1, tiempo_embestida / player2.cooldown_embestida)
+            progreso = min(1, (tiempo_visual - player2.ultima_embestida) / player2.cooldown_embestida)
+
+            color = (255, 120, 40) if player2.furia else (80, 180, 255)
 
             pygame.draw.rect(screen, (30, 30, 35), (barra_x, 105, 200, 9), border_radius=4)
-            if player2.furia:
-                color_barra = (255, 120, 40)
+            pygame.draw.rect(screen, color, (barra_x, 105, int(200 * progreso), 9), border_radius=4)
 
-            else:
-                color_barra = (80, 180, 255)
-
-            pygame.draw.rect(screen, color_barra, (barra_x, 105, int(200 * mana_embestida), 9), border_radius=4)
-
-
-        #---- FEATURE COOPERATIVO - BARRA ONDA EXPANSIVA ----
-        if dos_jugadores:
-
-            onda_ancho = 240
-            onda_x = screen.get_width() // 2 - onda_ancho // 2
-            onda_y = 24
+            # onda
+            onda_x = screen.get_width() // 2 - 120
 
             if onda.espera > 0:
                 progreso_onda = 1 - onda.espera / onda.cooldown
@@ -522,123 +445,86 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
                 progreso_onda = 1
                 color_onda = (170, 90, 255)
 
-            pygame.draw.rect(screen, (30, 30, 35), (onda_x, onda_y, onda_ancho, 12), border_radius=5)
-            pygame.draw.rect(screen, color_onda, (onda_x, onda_y, int(onda_ancho * progreso_onda), 12), border_radius=5)
-        #----
+            pygame.draw.rect(screen, (30, 30, 35), (onda_x, 24, 240, 12), border_radius=5)
+            pygame.draw.rect(screen, color_onda, (onda_x, 24, int(240 * progreso_onda), 12), border_radius=5)
 
-        #---- FEATURE POWER UPS - BARRA RAPID FIRE COMPACTA ----
-        if player.rapid_fire:
-
-            barra_x = 20
-            barra_y = 106
-            barra_ancho = 200
-            barra_alto = 5
-
-            tiempo_restante = player.fin_rapid_fire - tiempo_visual
-            progreso = tiempo_restante / player.duracion_rapid_fire
-            progreso = max(0, min(1, progreso))
-
-            pygame.draw.rect(screen, (35, 35, 40), (barra_x, barra_y, barra_ancho, barra_alto), border_radius=3)
-            pygame.draw.rect(screen, (255, 205, 40), (barra_x, barra_y, int(barra_ancho * progreso), barra_alto), border_radius=3)
-        #----
-
+        # ================= COLISIONES =================
         if not pausado:
 
-            #---- FEATURE POWER UPS - RECOGER POWER UP ----
-            if player.caido:
-                powerups_recogidos = []
+            # recoger powerup jorge
+            if not player.caido:
 
-            else:
-                powerups_recogidos = pygame.sprite.spritecollide(player, powerups, True)
+                recogidos = pygame.sprite.spritecollide(player, powerups, True)
 
-            for powerup in powerups_recogidos:
+                for powerup in recogidos:
+                    sonido_powerup.play()
+                    player.activar_powerup(powerup.tipo)
 
-                #---- FEATURE MUSICA Y SONIDO - SONIDO POWER UP ----
-                sonido_powerup.play()
-                #----
-
-                player.activar_powerup(powerup.tipo)
-            #----
-
-            #---- FEATURE COOPERATIVO - RECOGER POWER UP JUGADOR 2 ----
+            # powerup player2
             if dos_jugadores and not player2.caido:
 
-                powerups_recogidos_2 = pygame.sprite.spritecollide(player2, powerups, True)
+                recogidos = pygame.sprite.spritecollide(player2, powerups, True)
 
-                for powerup in powerups_recogidos_2:
-
+                for powerup in recogidos:
                     sonido_powerup.play()
                     player2.activar_powerup(powerup.tipo)
-            #----
 
-            # ? Calcular colisiones entre jugador y enemigos
-
-            #---- FEATURE VIDAS DEL JUGADOR - DAÑO DE ENEMIGOS ----
+            # choque jorge
             enemigos_tocando = pygame.sprite.spritecollide(player, enemies, False)
 
             if enemigos_tocando and not player.caido:
 
-                enemigo = enemigos_tocando[0]
-                enemigo.kill()
+                enemigos_tocando[0].kill()
 
                 if player.escudo:
-
                     player.escudo = False
                     player.actualizar_apariencia()
 
                 else:
-
-                    #---- FEATURE MUSICA Y SONIDO - SONIDO DE DAÑO ----
                     sonido_damage.play()
-                    #----
 
-                    murio = player.recibir_dano()
-
-                    if murio:
+                    if player.recibir_dano():
                         player.caer()
-            #----
 
-            #---- FEATURE COOPERATIVO - DAÑO JUGADOR 2 ----
-            enemigos_tocando_2 = pygame.sprite.spritecollide(player2, enemies, False)
- 
-            if dos_jugadores and enemigos_tocando_2 and not player2.caido:
+            # choque pato
+            if dos_jugadores and not player2.caido:
 
-                enemigos_tocando_2[0].kill()
+                enemigos_tocando_2 = pygame.sprite.spritecollide(player2, enemies, False)
 
-                if player2.escudo:
-                    player2.escudo = False
-                    player2.actualizar_apariencia()
+                if enemigos_tocando_2:
 
-                else:
-                    sonido_damage.play()
+                    enemigos_tocando_2[0].kill()
 
-                    murio_2 = player2.recibir_dano()
+                    if player2.escudo:
+                        player2.escudo = False
+                        player2.actualizar_apariencia()
 
-                    if murio_2:
-                        player2.caer()
-            #----
+                    else:
+                        sonido_damage.play()
 
-            #---- FEATURE COOPERATIVO - REVIVIR ----
+                        if player2.recibir_dano():
+                            player2.caer()
+
+            # REVIVIR
             if dos_jugadores:
 
-                for jugador_caido, rescatista in [(player, player2), (player2, player)]:
+                for caido, rescatista in [(player, player2), (player2, player)]:
 
-                    if jugador_caido.caido and not rescatista.caido:
+                    if caido.caido and not rescatista.caido:
 
-                        distancia = (Vector2(jugador_caido.rect.center) - Vector2(rescatista.rect.center)).length()
+                        distancia = (Vector2(caido.rect.center) - Vector2(rescatista.rect.center)).length()
 
                         if distancia < 110:
-                            jugador_caido.progreso_revivir += 1
+                            caido.progreso_revivir += 1
 
                         else:
-                            jugador_caido.progreso_revivir = 0
+                            caido.progreso_revivir = 0
 
-                        if jugador_caido.progreso_revivir >= 300:
-                            jugador_caido.revivir()
+                        if caido.progreso_revivir >= 300:
+                            caido.revivir()
                             sonido_powerup.play()
-            #----
 
-            #---- FEATURE COOPERATIVO - FIN DEL JUEGO ----
+            # GAME OVER
             if dos_jugadores:
                 todos_caidos = player.caido and player2.caido
 
@@ -651,38 +537,23 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
                 pygame.mouse.set_visible(True)
 
                 return ("dead", estadistica)
-            #----
 
-            # TODO (2.6): Calcular colisiones entre balas y enemigos
-            colisiones_balas = pygame.sprite.groupcollide(player.bullets, enemies, True, True)
+            # sistema nuevo de penetracion
+            estadistica += procesar_balas(player, enemies, sonido_hit)
 
-            for lista_enemigos in colisiones_balas.values():
-                estadistica += len(lista_enemigos) * 5
-
-            #---- FEATURE MUSICA Y SONIDO - HIT DE FLECHA CONTRA BUG ----
-            if colisiones_balas:
-                sonido_hit.play()
-            #----
-
-            #---- FEATURE MIRA - DIBUJAR CROSSHAIR ----
             screen.blit(crosshair.image, crosshair.rect)
-            #----
 
-        #---- FEATURE MENU PAUSA - DIBUJAR PAUSA ----
+        # ================= PAUSA VISUAL =================
         if pausado:
 
             overlay = pygame.Surface((screen.get_width(), screen.get_height()), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 180))
             screen.blit(overlay, (0, 0))
 
-            titulo_pausa = font_pausa.render("PAUSA", True, (255, 215, 80))
-            screen.blit(titulo_pausa, titulo_pausa.get_rect(center=(screen.get_width() // 2, 230)))
+            titulo = font_pausa.render("PAUSA", True, (255, 215, 80))
+            screen.blit(titulo, titulo.get_rect(center=(screen.get_width() // 2, 230)))
 
-            if pantalla_completa:
-                texto_pantalla = "MODO VENTANA"
-
-            else:
-                texto_pantalla = "PANTALLA COMPLETA"
+            texto_pantalla = "MODO VENTANA" if pantalla_completa else "PANTALLA COMPLETA"
 
             mouse = pygame.mouse.get_pos()
 
@@ -695,26 +566,13 @@ def gameloop(screen, cantidad_jugadores=1, nivel_vida=0, nivel_balas=0):
 
             for boton, texto in botones:
 
-                if boton.collidepoint(mouse):
-                    color = (255, 205, 60)
-
-                else:
-                    color = (40, 45, 55)
+                color = (255, 205, 60) if boton.collidepoint(mouse) else (40, 45, 55)
 
                 pygame.draw.rect(screen, color, boton, border_radius=10)
                 pygame.draw.rect(screen, (255, 215, 80), boton, 3, border_radius=10)
 
-                texto_render = font_boton.render(texto, True, (255, 255, 255))
-                screen.blit(texto_render, texto_render.get_rect(center=boton.center))
-        #----
+                render = font_boton.render(texto, True, (255, 255, 255))
+                screen.blit(render, render.get_rect(center=boton.center))
 
-        # ? Actualizar la ventana para reflejar todos los cambios
         pygame.display.flip()
-
-        # ? Controlar la velocidad de fotogramas
         clock.tick(60)
-
-    pygame.mixer.music.stop()
-    pygame.mouse.set_visible(True)
-
-    return "quit"
