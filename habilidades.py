@@ -1,8 +1,6 @@
-# sistema de mejoras permanentes, se guardan aparte pq si no se mezcla todo
-# con progreso y despues es un cacho
-
 ARCHIVO_HABILIDADES = "habilidades.txt"
 
+orden = ["vida", "municion", "recarga", "penetracion", "dano", "tamano"]
 
 niveles = {
     "vida": 0,
@@ -10,92 +8,70 @@ niveles = {
     "recarga": 0,
     "penetracion": 0,
     "dano": 0,
+    "tamano": 0,
 }
 
-
-# maximos de cada habildiad
 maximos = {
     "vida": 5,
     "municion": 5,
     "recarga": 5,
     "penetracion": 3,
     "dano": 4,
+    "tamano": 5,
 }
 
-
-# precios iniciales, la idea es que cueste farmearlos
 costos_base = {
     "vida": 600,
     "municion": 400,
     "recarga": 500,
     "penetracion": 750,
     "dano": 900,
+    "tamano": 900,
 }
 
-
-# cuanto se encarece cada compra
 multiplicadores = {
     "vida": 1.70,
     "municion": 1.60,
     "recarga": 1.65,
     "penetracion": 1.80,
     "dano": 1.85,
+    "tamano": 1.75,
 }
 
 
 def cargar():
-
     try:
-
         with open(ARCHIVO_HABILIDADES, "r") as archivo:
             lineas = archivo.readlines()
 
-        claves = list(niveles.keys())
-
-        for i in range(min(len(lineas), len(claves))):
-
-            try:
-                valor = int(lineas[i].strip())
-
-            except ValueError:
-                valor = 0
-
-            nombre = claves[i]
-
-            niveles[nombre] = max(
-                0,
-                min(valor, maximos[nombre])
-            )
+        for i, nombre in enumerate(orden):
+            if i < len(lineas):
+                try:
+                    valor = int(lineas[i].strip())
+                    niveles[nombre] = max(0, min(valor, maximos[nombre]))
+                except ValueError:
+                    niveles[nombre] = 0
 
     except FileNotFoundError:
         pass
 
 
 def guardar():
-
     with open(ARCHIVO_HABILIDADES, "w") as archivo:
-
-        archivo.write(f"{niveles['vida']}\n")
-        archivo.write(f"{niveles['municion']}\n")
-        archivo.write(f"{niveles['recarga']}\n")
-        archivo.write(f"{niveles['penetracion']}\n")
-        archivo.write(f"{niveles['dano']}")
+        for nombre in orden:
+            archivo.write(f"{niveles[nombre]}\n")
 
 
-# calcula el precio DEL SIGUIENTE nivel
 def costo(nombre):
-
     nivel = niveles[nombre]
 
-    return round(
-        costos_base[nombre]
-        * multiplicadores[nombre] ** nivel
-    )
+    if nivel >= maximos[nombre]:
+        return 0
+
+    return round(costos_base[nombre] * (multiplicadores[nombre] ** nivel))
 
 
-# COMPRA, devuelve las coins nuevas y si compro o no
 def comprar(nombre, coins):
-
     if nombre not in niveles:
         return coins, False
 
@@ -115,48 +91,74 @@ def comprar(nombre, coins):
     return coins, True
 
 
-# valores reales usados por el player
-def vida_maxima():
-    return 5 + niveles["vida"]
+def vida_maxima(nivel=None):
+    if nivel is None:
+        nivel = niveles["vida"]
+
+    return 5 + nivel
 
 
-def municion_maxima():
-    return 5 + niveles["municion"]
+def municion_maxima(nivel=None):
+    if nivel is None:
+        nivel = niveles["municion"]
+
+    return 5 + nivel
 
 
-def tiempo_recarga():
-    return 3000 - niveles["recarga"] * 300
+def tiempo_recarga(nivel=None):
+    if nivel is None:
+        nivel = niveles["recarga"]
+
+    return max(1500, 3000 - nivel * 300)
 
 
-def penetracion():
-    return 1 + niveles["penetracion"]
+def penetracion(nivel=None):
+    if nivel is None:
+        nivel = niveles["penetracion"]
+
+    return 1 + nivel
 
 
-def dano():
-    return 1 + niveles["dano"] * 0.5
+def dano(nivel=None):
+    if nivel is None:
+        nivel = niveles["dano"]
+
+    # NIVEL 0 = 1 daño
+    # NIVEL 4 = 5 daño
+    return 1 + nivel
 
 
-# para que la tienda muestre algo entendible
+def escala_jugador(nivel=None):
+    if nivel is None:
+        nivel = niveles["tamano"]
+
+    # 100%, 90%, 80%, 70%, 60%, 50%
+    return max(0.50, 1.0 - nivel * 0.10)
+
+
 def texto_valor(nombre, nivel=None):
-
     if nivel is None:
         nivel = niveles[nombre]
 
     if nombre == "vida":
-        return f"{5 + nivel} corazones"
+        return f"{vida_maxima(nivel)} corazones"
 
     if nombre == "municion":
-        return f"{5 + nivel} flechas"
+        return f"{municion_maxima(nivel)} flechas"
 
     if nombre == "recarga":
-        tiempo = 3000 - nivel * 300
-        return f"{tiempo / 1000:.1f} segundos"
+        return f"{tiempo_recarga(nivel) / 1000:.1f} s"
 
     if nombre == "penetracion":
-        return f"{1 + nivel} enemigos"
+        return f"{penetracion(nivel)} enemigos"
 
     if nombre == "dano":
-        return f"{1 + nivel * 0.5:.1f} dano"
+        return f"{dano(nivel)} daño"
+
+    if nombre == "tamano":
+        return f"{round(escala_jugador(nivel) * 100)}%"
+
+    return "-"
 
 
 cargar()

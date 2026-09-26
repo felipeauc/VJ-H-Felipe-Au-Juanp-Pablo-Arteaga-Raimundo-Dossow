@@ -5,126 +5,100 @@ import pygame
 from pygame.locals import K_a, K_d, K_s, K_w, K_LSHIFT
 from pygame.math import Vector2
 
+import habilidades
+import robo_vida
+
 from .bullet import Bullet
 
-import habilidades
 
-
-# jorge normal
 JorgePNG = pygame.image.load("assets/jorge.png")
-JorgePNG_scaled = pygame.transform.scale(JorgePNG, (80, 80))
-
-
-# estados de powerups / reload
 JorgeShieldPNG = pygame.image.load("assets/jorge_shield.png")
-JorgeShieldPNG_scaled = pygame.transform.scale(JorgeShieldPNG, (80, 80))
-
 JorgeRapidPNG = pygame.image.load("assets/jorge_rapid.png")
-JorgeRapidPNG_scaled = pygame.transform.scale(JorgeRapidPNG, (80, 80))
-
 JorgeShieldRapidPNG = pygame.image.load("assets/jorge_shield_rapid.png")
-JorgeShieldRapidPNG_scaled = pygame.transform.scale(JorgeShieldRapidPNG, (80, 80))
 
 JorgeReloadPNG = pygame.image.load("assets/jorge_reload.png")
-JorgeReloadPNG_scaled = pygame.transform.scale(JorgeReloadPNG, (80, 80))
-
 JorgeReloadShieldPNG = pygame.image.load("assets/jorge_reload_shield.png")
-JorgeReloadShieldPNG_scaled = pygame.transform.scale(JorgeReloadShieldPNG, (80, 80))
-
 JorgeReloadRapidPNG = pygame.image.load("assets/jorge_reload_rapid.png")
-JorgeReloadRapidPNG_scaled = pygame.transform.scale(JorgeReloadRapidPNG, (80, 80))
-
 JorgeReloadShieldRapidPNG = pygame.image.load("assets/jorge_reload_shield_rapid.png")
-JorgeReloadShieldRapidPNG_scaled = pygame.transform.scale(JorgeReloadShieldRapidPNG, (80, 80))
 
-
-# sprint imgs
 JorgeSprintPNG = pygame.image.load("assets/jorge_sprint.png")
-JorgeSprintPNG_scaled = pygame.transform.scale(JorgeSprintPNG, (80, 80))
-
 JorgeShieldSprintPNG = pygame.image.load("assets/jorge_shield_sprint.png")
-JorgeShieldSprintPNG_scaled = pygame.transform.scale(JorgeShieldSprintPNG, (80, 80))
-
 JorgeRapidSprintPNG = pygame.image.load("assets/jorge_rapid_sprint.png")
-JorgeRapidSprintPNG_scaled = pygame.transform.scale(JorgeRapidSprintPNG, (80, 80))
-
 JorgeShieldRapidSprintPNG = pygame.image.load("assets/jorge_shield_rapid_sprint.png")
-JorgeShieldRapidSprintPNG_scaled = pygame.transform.scale(JorgeShieldRapidSprintPNG, (80, 80))
 
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, screen):
-
         super().__init__()
-
-        self.image = JorgePNG_scaled
-        self.rect = self.image.get_rect()
 
         self.screen_width = screen.get_width()
         self.screen_height = screen.get_height()
 
-        # balas
+        # mejora de tamaño
+        self.escala = habilidades.escala_jugador()
+        self.tamano = max(40, round(80 * self.escala))
+
+        # escalamos UNA sola vez al crear jugador
+        self.sprites = {
+            "normal": pygame.transform.scale(JorgePNG, (self.tamano, self.tamano)),
+            "shield": pygame.transform.scale(JorgeShieldPNG, (self.tamano, self.tamano)),
+            "rapid": pygame.transform.scale(JorgeRapidPNG, (self.tamano, self.tamano)),
+            "shield_rapid": pygame.transform.scale(JorgeShieldRapidPNG, (self.tamano, self.tamano)),
+            "reload": pygame.transform.scale(JorgeReloadPNG, (self.tamano, self.tamano)),
+            "reload_shield": pygame.transform.scale(JorgeReloadShieldPNG, (self.tamano, self.tamano)),
+            "reload_rapid": pygame.transform.scale(JorgeReloadRapidPNG, (self.tamano, self.tamano)),
+            "reload_shield_rapid": pygame.transform.scale(JorgeReloadShieldRapidPNG, (self.tamano, self.tamano)),
+            "sprint": pygame.transform.scale(JorgeSprintPNG, (self.tamano, self.tamano)),
+            "shield_sprint": pygame.transform.scale(JorgeShieldSprintPNG, (self.tamano, self.tamano)),
+            "rapid_sprint": pygame.transform.scale(JorgeRapidSprintPNG, (self.tamano, self.tamano)),
+            "shield_rapid_sprint": pygame.transform.scale(JorgeShieldRapidSprintPNG, (self.tamano, self.tamano)),
+        }
+
+        self.image = self.sprites["normal"]
+        self.rect = self.image.get_rect()
+
         self.bullets = pygame.sprite.Group()
 
-
-        # ==========================================
-        # MEJORAS PERMANENTES DE LA TIENDA
-        # ==========================================
-
+        # mejoras
+        self.disparos = 0
         self.max_disparos = habilidades.municion_maxima()
 
+        self.sobrecalentado = False
+        self.inicio_sobrecalentamiento = 0
         self.tiempo_sobrecalentamiento = habilidades.tiempo_recarga()
 
         self.max_vidas = habilidades.vida_maxima()
         self.vidas = self.max_vidas
 
-        # ==========================================
+        # robo de vida
+        robo_vida.registrar_jugador(self)
 
-
-        # sistema arma
-        self.disparos = 0
-
-        self.sobrecalentado = False
-        self.inicio_sobrecalentamiento = 0
-
-
-        # coop caido
+        # coop
         self.caido = False
         self.progreso_revivir = 0
 
-
         # rapid fire
         self.rapid_fire = False
-
         self.duracion_rapid_fire = 7000
         self.fin_rapid_fire = 0
-
         self.ultimo_disparo_rapid_fire = 0
         self.cooldown_rapid_fire = 100
 
-
-        # escudo
         self.escudo = False
-
 
         # movimiento
         self.velocidad_normal = 4
         self.velocidad_rapida = 6
-
         self.sprint = False
 
-
-        # slow del bug M
+        # slow
         self.fin_slow = 0
         self.factor_slow = 0.5
 
-
-        # DASH
+        # dash
         self.distancia_dash = 140
-
         self.cooldown_dash = 1500
         self.ultimo_dash = -self.cooldown_dash
-
 
         # sonidos
         self.sonido_disparo = pygame.mixer.Sound("assets/arrow.wav")
@@ -135,41 +109,14 @@ class Player(pygame.sprite.Sprite):
 
 
     def update(self, pressed_keys):
+        moviendose = pressed_keys[K_w] or pressed_keys[K_s] or pressed_keys[K_a] or pressed_keys[K_d]
+        self.sprint = pressed_keys[K_LSHIFT] and moviendose and not self.sobrecalentado
 
-        # sprint
-        moviendose = (
-            pressed_keys[K_w]
-            or pressed_keys[K_s]
-            or pressed_keys[K_a]
-            or pressed_keys[K_d]
-        )
+        velocidad = self.velocidad_rapida if self.sprint else self.velocidad_normal
 
-        shift = pressed_keys[K_LSHIFT]
-
-        self.sprint = (
-            shift
-            and moviendose
-            and not self.sobrecalentado
-        )
-
-
-        if self.sprint:
-            velocidad = self.velocidad_rapida
-
-        else:
-            velocidad = self.velocidad_normal
-
-
-        # slow morado
         if pygame.time.get_ticks() < self.fin_slow:
+            velocidad = max(1, int(velocidad * self.factor_slow))
 
-            velocidad = max(
-                1,
-                int(velocidad * self.factor_slow)
-            )
-
-
-        # mover jorge
         if pressed_keys[K_w]:
             self.rect.move_ip(0, -velocidad)
 
@@ -182,322 +129,148 @@ class Player(pygame.sprite.Sprite):
         if pressed_keys[K_d]:
             self.rect.move_ip(velocidad, 0)
 
+        self.rect.left = max(self.rect.left, 0)
+        self.rect.right = min(self.rect.right, self.screen_width)
+        self.rect.top = max(self.rect.top, 0)
+        self.rect.bottom = min(self.rect.bottom, self.screen_height)
 
-        # mantenerlo adentro de la pantalla
-        self.rect.left = max(
-            self.rect.left,
-            0
-        )
-
-        self.rect.right = min(
-            self.rect.right,
-            self.screen_width
-        )
-
-        self.rect.top = max(
-            self.rect.top,
-            0
-        )
-
-        self.rect.bottom = min(
-            self.rect.bottom,
-            self.screen_height
-        )
-
-
-        # actualizar proyectiles
         self.bullets.update()
-
 
         ahora = pygame.time.get_ticks()
 
+        if self.sobrecalentado and ahora - self.inicio_sobrecalentamiento >= self.tiempo_sobrecalentamiento:
+            self.sobrecalentado = False
+            self.disparos = 0
 
-        # recarga
-        if self.sobrecalentado:
-
-            if (
-                ahora - self.inicio_sobrecalentamiento
-                >= self.tiempo_sobrecalentamiento
-            ):
-
-                self.sobrecalentado = False
-                self.disparos = 0
-
-
-        # termina rapid fire
-        if self.rapid_fire:
-
-            if ahora >= self.fin_rapid_fire:
-
-                self.rapid_fire = False
-
-                self.disparos = 0
-                self.sobrecalentado = False
-
+        if self.rapid_fire and ahora >= self.fin_rapid_fire:
+            self.rapid_fire = False
+            self.disparos = 0
+            self.sobrecalentado = False
 
         self.actualizar_apariencia()
 
 
     def shoot(self, mouse_pos):
-
-        # RAPID fire
         if self.rapid_fire:
-
             ahora = pygame.time.get_ticks()
 
-            if (
-                ahora - self.ultimo_disparo_rapid_fire
-                < self.cooldown_rapid_fire
-            ):
+            if ahora - self.ultimo_disparo_rapid_fire < self.cooldown_rapid_fire:
                 return
 
             self.ultimo_disparo_rapid_fire = ahora
 
+        elif self.sobrecalentado:
+            return
 
-        else:
-
-            if self.sobrecalentado:
-                return
-
-
-        # direccion al mouse
-        distance = (
-            Vector2(mouse_pos)
-            - Vector2(self.rect.center)
-        )
-
+        distance = Vector2(mouse_pos) - Vector2(self.rect.center)
 
         if distance.length() == 0:
             return
 
-
         direction = distance.normalize()
 
-
-        bullet = Bullet(
-            self.rect.center,
-            direction,
-            self.screen_width,
-            self.screen_height,
-            self.rapid_fire
-        )
-
-
-        self.bullets.add(
-            bullet
-        )
-
+        bullet = Bullet(self.rect.center, direction, self.screen_width, self.screen_height, self.rapid_fire)
+        self.bullets.add(bullet)
 
         self.sonido_disparo.play()
 
-
-        # rapid no gasta municion
         if not self.rapid_fire:
-
             self.disparos += 1
 
-
             if self.disparos >= self.max_disparos:
-
                 self.sobrecalentado = True
-
                 self.inicio_sobrecalentamiento = pygame.time.get_ticks()
 
 
-    # daño
     def recibir_dano(self):
-
         self.vidas -= 1
 
-
         if self.vidas <= 0:
-
             self.vidas = 0
-
             return True
-
 
         return False
 
 
-    # ==============================================
-    # COOP
-    # ==============================================
-
     def caer(self):
-
         self.caido = True
         self.progreso_revivir = 0
 
-
         self.image = self.image.copy()
-
-        self.image.set_alpha(
-            150
-        )
+        self.image.set_alpha(150)
 
 
     def revivir(self):
-
         self.caido = False
         self.progreso_revivir = 0
-
-
-        # revive con 2 corazones
-        self.vidas = min(
-            2,
-            self.max_vidas
-        )
-
+        self.vidas = min(2, self.max_vidas)
 
         self.actualizar_apariencia()
 
 
-    # ==============================================
-    # POWERUPS
-    # ==============================================
-
     def activar_powerup(self, tipo):
-
         if tipo == "rapid_fire":
-
             self.rapid_fire = True
-
-            self.fin_rapid_fire = (
-                pygame.time.get_ticks()
-                + self.duracion_rapid_fire
-            )
-
-            # si estaba recargando lo saca de reload
+            self.fin_rapid_fire = pygame.time.get_ticks() + self.duracion_rapid_fire
             self.sobrecalentado = False
             self.disparos = 0
 
-
         elif tipo == "shield":
-
             self.escudo = True
-
 
         self.actualizar_apariencia()
 
 
-    # ==============================================
-    # CAMBIAR SPRITE
-    # ==============================================
-
     def actualizar_apariencia(self):
-
         centro = self.rect.center
 
+        if self.sobrecalentado and self.escudo and self.rapid_fire:
+            self.image = self.sprites["reload_shield_rapid"]
 
-        if (
-            self.sobrecalentado
-            and self.escudo
-            and self.rapid_fire
-        ):
+        elif self.sobrecalentado and self.escudo:
+            self.image = self.sprites["reload_shield"]
 
-            self.image = JorgeReloadShieldRapidPNG_scaled
-
-
-        elif (
-            self.sobrecalentado
-            and self.escudo
-        ):
-
-            self.image = JorgeReloadShieldPNG_scaled
-
-
-        elif (
-            self.sobrecalentado
-            and self.rapid_fire
-        ):
-
-            self.image = JorgeReloadRapidPNG_scaled
-
+        elif self.sobrecalentado and self.rapid_fire:
+            self.image = self.sprites["reload_rapid"]
 
         elif self.sobrecalentado:
+            self.image = self.sprites["reload"]
 
-            self.image = JorgeReloadPNG_scaled
+        elif self.escudo and self.rapid_fire and self.sprint:
+            self.image = self.sprites["shield_rapid_sprint"]
 
+        elif self.escudo and self.rapid_fire:
+            self.image = self.sprites["shield_rapid"]
 
-        elif (
-            self.escudo
-            and self.rapid_fire
-            and self.sprint
-        ):
-
-            self.image = JorgeShieldRapidSprintPNG_scaled
-
-
-        elif (
-            self.escudo
-            and self.rapid_fire
-        ):
-
-            self.image = JorgeShieldRapidPNG_scaled
-
-
-        elif (
-            self.rapid_fire
-            and self.sprint
-        ):
-
-            self.image = JorgeRapidSprintPNG_scaled
-
+        elif self.rapid_fire and self.sprint:
+            self.image = self.sprites["rapid_sprint"]
 
         elif self.rapid_fire:
+            self.image = self.sprites["rapid"]
 
-            self.image = JorgeRapidPNG_scaled
-
-
-        elif (
-            self.escudo
-            and self.sprint
-        ):
-
-            self.image = JorgeShieldSprintPNG_scaled
-
+        elif self.escudo and self.sprint:
+            self.image = self.sprites["shield_sprint"]
 
         elif self.escudo:
-
-            self.image = JorgeShieldPNG_scaled
-
+            self.image = self.sprites["shield"]
 
         elif self.sprint:
-
-            self.image = JorgeSprintPNG_scaled
-
+            self.image = self.sprites["sprint"]
 
         else:
+            self.image = self.sprites["normal"]
 
-            self.image = JorgePNG_scaled
+        self.rect = self.image.get_rect(center=centro)
 
-
-        self.rect = self.image.get_rect(
-            center=centro
-        )
-
-
-    # ==============================================
-    # DASH
-    # ==============================================
 
     def dash(self, pressed_keys):
-
         ahora = pygame.time.get_ticks()
 
-
-        if (
-            ahora - self.ultimo_dash
-            < self.cooldown_dash
-        ):
-
+        if ahora - self.ultimo_dash < self.cooldown_dash:
             return None
-
 
         direccion_x = 0
         direccion_y = 0
-
 
         if pressed_keys[K_w]:
             direccion_y -= 1
@@ -511,77 +284,27 @@ class Player(pygame.sprite.Sprite):
         if pressed_keys[K_d]:
             direccion_x += 1
 
-
-        if (
-            direccion_x == 0
-            and direccion_y == 0
-        ):
-
+        if direccion_x == 0 and direccion_y == 0:
             return None
 
-
-        direccion = Vector2(
-            direccion_x,
-            direccion_y
-        ).normalize()
-
-
+        direccion = Vector2(direccion_x, direccion_y).normalize()
         posicion_inicial = self.rect.center
 
+        self.rect.x += int(direccion.x * self.distancia_dash)
+        self.rect.y += int(direccion.y * self.distancia_dash)
 
-        self.rect.x += int(
-            direccion.x
-            * self.distancia_dash
-        )
-
-
-        self.rect.y += int(
-            direccion.y
-            * self.distancia_dash
-        )
-
-
-        # no dejar que salga con dash
-        self.rect.left = max(
-            self.rect.left,
-            0
-        )
-
-        self.rect.right = min(
-            self.rect.right,
-            self.screen_width
-        )
-
-        self.rect.top = max(
-            self.rect.top,
-            0
-        )
-
-        self.rect.bottom = min(
-            self.rect.bottom,
-            self.screen_height
-        )
-
+        self.rect.left = max(self.rect.left, 0)
+        self.rect.right = min(self.rect.right, self.screen_width)
+        self.rect.top = max(self.rect.top, 0)
+        self.rect.bottom = min(self.rect.bottom, self.screen_height)
 
         posicion_final = self.rect.center
 
-
         self.ultimo_dash = ahora
-
-
         self.sonido_dash.play()
 
-
-        return (
-            posicion_inicial,
-            posicion_final
-        )
+        return posicion_inicial, posicion_final
 
 
-    # slow que aplica proyectil M
     def aplicar_slow(self):
-
-        self.fin_slow = (
-            pygame.time.get_ticks()
-            + 2500
-        )
+        self.fin_slow = pygame.time.get_ticks() + 2500

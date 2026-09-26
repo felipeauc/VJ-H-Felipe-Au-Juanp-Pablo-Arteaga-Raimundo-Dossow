@@ -5,13 +5,34 @@ import random
 import pygame
 from pygame.math import Vector2
 
+import robo_vida
+
+
+_cache_originales = {}
+_cache_escaladas = {}
+
+
+def imagen_original(archivo):
+    if archivo not in _cache_originales:
+        _cache_originales[archivo] = pygame.image.load(archivo).convert_alpha()
+
+    return _cache_originales[archivo]
+
+
+def imagen_escalada(archivo, tamano):
+    clave = (archivo, tamano)
+
+    if clave not in _cache_escaladas:
+        _cache_escaladas[clave] = pygame.transform.scale(imagen_original(archivo), (tamano, tamano))
+
+    return _cache_escaladas[clave]
+
 
 class BossProjectile(pygame.sprite.Sprite):
     def __init__(self, posicion, direccion, screen, velocidad=8, tamano=32):
         super().__init__()
 
-        imagen = pygame.image.load("assets/proyectil_B.png").convert_alpha()
-        self.image = pygame.transform.scale(imagen, (tamano, tamano))
+        self.image = imagen_escalada("assets/proyectil_B.png", tamano)
         self.rect = self.image.get_rect(center=posicion)
 
         direccion = Vector2(direccion)
@@ -26,7 +47,6 @@ class BossProjectile(pygame.sprite.Sprite):
         self.screen_width = screen.get_width()
         self.screen_height = screen.get_height()
 
-        # una flecha normal lo destruye
         self.vidas = 1
 
 
@@ -34,7 +54,7 @@ class BossProjectile(pygame.sprite.Sprite):
         self.posicion += self.direccion * self.velocidad
         self.rect.center = (round(self.posicion.x), round(self.posicion.y))
 
-        margen = 100
+        margen = 70
 
         if self.rect.right < -margen or self.rect.left > self.screen_width + margen or self.rect.bottom < -margen or self.rect.top > self.screen_height + margen:
             self.kill()
@@ -54,10 +74,9 @@ class Meteorito(pygame.sprite.Sprite):
     def __init__(self, screen, x=None, velocidad=9):
         super().__init__()
 
-        imagen = pygame.image.load("assets/meteorito.png").convert_alpha()
+        tamano = random.choice([56, 68, 80])
 
-        tamano = random.randint(55, 85)
-        self.image = pygame.transform.scale(imagen, (tamano, tamano))
+        self.image = imagen_escalada("assets/meteorito.png", tamano)
 
         if x is None:
             x = random.randint(20, screen.get_width() - 20)
@@ -66,11 +85,10 @@ class Meteorito(pygame.sprite.Sprite):
         self.posicion = Vector2(self.rect.center)
 
         self.velocidad_y = velocidad
-        self.velocidad_x = random.uniform(-1.3, 1.3)
+        self.velocidad_x = random.uniform(-1.0, 1.0)
 
         self.screen_height = screen.get_height()
 
-        # necesita dos de daño
         self.vidas = 2
 
 
@@ -80,7 +98,7 @@ class Meteorito(pygame.sprite.Sprite):
 
         self.rect.center = (round(self.posicion.x), round(self.posicion.y))
 
-        if self.rect.top > self.screen_height + 80:
+        if self.rect.top > self.screen_height + 60:
             self.kill()
 
 
@@ -116,12 +134,11 @@ class MiniDragon(pygame.sprite.Sprite):
         else:
             archivo = "assets/bug_G.png"
             tamano = 78
-            self.vidas = 4
+            self.vidas = 5
 
-        imagen = pygame.image.load(archivo).convert_alpha()
-        self.image = pygame.transform.scale(imagen, (tamano, tamano))
+        self.image = imagen_escalada(archivo, tamano)
 
-        self.velocidad = 3.2 + fase * 0.5
+        self.velocidad = 3.0 + fase * 0.35
 
         lado = random.choice(["arriba", "abajo", "izquierda", "derecha"])
 
@@ -149,8 +166,7 @@ class MiniDragon(pygame.sprite.Sprite):
         direccion = Vector2(objetivo) - self.posicion
 
         if direccion.length() > 0:
-            direccion = direccion.normalize()
-            self.posicion += direccion * self.velocidad
+            self.posicion += direccion.normalize() * self.velocidad
             self.rect.center = (round(self.posicion.x), round(self.posicion.y))
 
 
@@ -158,7 +174,12 @@ class MiniDragon(pygame.sprite.Sprite):
         self.vidas -= cantidad
 
         if self.vidas <= 0:
+            self.vidas = 0
+
+            robo_vida.registrar_muerte()
+
             self.kill()
+
             return True
 
         return False
@@ -172,33 +193,37 @@ class Boss(pygame.sprite.Sprite):
         self.screen_width = screen.get_width()
         self.screen_height = screen.get_height()
 
-        self.imagen_original = pygame.image.load("assets/boss.png").convert_alpha()
+        # calentamos cache al inicio del boss y no durante fase 3
+        for tamano in [24, 28, 32]:
+            imagen_escalada("assets/proyectil_B.png", tamano)
+
+        for tamano in [56, 68, 80]:
+            imagen_escalada("assets/meteorito.png", tamano)
+
+        imagen_escalada("assets/bug_S.png", 58)
+        imagen_escalada("assets/bug_D.png", 65)
+        imagen_escalada("assets/bug_G.png", 78)
+
+        self.imagen_original = imagen_original("assets/boss.png")
 
         self.tamano_actual = 240
         self.image = pygame.transform.scale(self.imagen_original, (240, 240))
         self.rect = self.image.get_rect(center=(self.screen_width // 2, 150))
         self.posicion = Vector2(self.rect.center)
 
-        # VIDA
         self.max_vidas = 650
         self.vidas = self.max_vidas
 
         self.fase_actual = 1
 
-        # MOVIMIENTO NORMAL
         self.velocidad_movimiento = 2.5
         self.objetivo_movimiento = Vector2(self.rect.center)
         self.proximo_cambio_movimiento = 0
 
-        # ATAQUES
         self.ultimo_ataque = pygame.time.get_ticks()
-        self.cooldown_ataque = 1250
+        self.cooldown_ataque = 1350
 
-        # ======================================
-        # DASH
-        # siempre va a una esquina PRIMERO
-        # ======================================
-
+        # dash
         self.yendo_esquina_dash = False
         self.preparando_embestida = False
         self.en_embestida = False
@@ -215,45 +240,44 @@ class Boss(pygame.sprite.Sprite):
         self.velocidad_embestida = 20
 
         self.quieto_hasta = 0
-
-        # evita que un dash quite 5 vidas al mismo jugador
         self.golpeados_embestida = set()
 
-        # METEORITOS ESPECIALES
+        # meteoritos especiales
         self.fase_meteoritos = False
         self.inicio_fase_meteoritos = 0
-        self.duracion_fase_meteoritos = 4000
+        self.duracion_fase_meteoritos = 3200
 
         self.ultimo_meteorito = 0
         self.ultimo_spawn_fase = 0
 
-        self.umbrales_meteoritos = [0.78, 0.48, 0.22]
+        self.umbrales_meteoritos = [0.75, 0.45, 0.20]
         self.meteoritos_usados = set()
 
-        # RAFAGAS
+        # rafagas
         self.rafagas_pendientes = 0
         self.proxima_rafaga = 0
         self.tipo_rafaga = "radial"
 
-        # para que no sea directamente imposible
-        self.max_subdragones = 10
+        self.limite_proyectiles = {1: 40, 2: 55, 3: 70, 4: 90, 5: 110}
+        self.limite_meteoritos = {1: 6, 2: 8, 3: 10, 4: 12, 5: 14}
+        self.limite_subdragones = {1: 2, 2: 3, 3: 4, 4: 6, 5: 8}
 
-
-    # ==================================================
-    # FASES
-    # ==================================================
 
     def actualizar_fase(self):
         porcentaje = self.vidas / self.max_vidas
 
         if porcentaje > 0.80:
             nueva_fase = 1
+
         elif porcentaje > 0.60:
             nueva_fase = 2
+
         elif porcentaje > 0.40:
             nueva_fase = 3
+
         elif porcentaje > 0.20:
             nueva_fase = 4
+
         else:
             nueva_fase = 5
 
@@ -261,15 +285,15 @@ class Boss(pygame.sprite.Sprite):
             self.fase_actual = nueva_fase
             self._actualizar_tamano()
 
-        cooldowns = {1: 1250, 2: 1000, 3: 800, 4: 650, 5: 500}
+        cooldowns = {1: 1350, 2: 1150, 3: 1000, 4: 800, 5: 650}
 
         self.cooldown_ataque = cooldowns[self.fase_actual]
-        self.velocidad_movimiento = 2.2 + self.fase_actual * 0.8
+        self.velocidad_movimiento = 2.0 + self.fase_actual * 0.65
         self.velocidad_ir_esquina = 7 + self.fase_actual
 
 
     def _actualizar_tamano(self):
-        tamanos = {1: 240, 2: 225, 3: 170, 4: 135, 5: 105}
+        tamanos = {1: 240, 2: 220, 3: 175, 4: 140, 5: 110}
 
         nuevo_tamano = tamanos[self.fase_actual]
 
@@ -287,19 +311,11 @@ class Boss(pygame.sprite.Sprite):
             self.image.set_alpha(0)
 
 
-    # ==================================================
-    # MOVIMIENTO NORMAL
-    # ==================================================
-
     def _elegir_nuevo_punto(self):
         margen = max(70, self.rect.width // 2)
 
-        self.objetivo_movimiento = Vector2(
-            random.randint(margen, self.screen_width - margen),
-            random.randint(margen, min(self.screen_height - margen, 430))
-        )
-
-        self.proximo_cambio_movimiento = pygame.time.get_ticks() + random.randint(700, 1500)
+        self.objetivo_movimiento = Vector2(random.randint(margen, self.screen_width - margen), random.randint(margen, min(self.screen_height - margen, 430)))
+        self.proximo_cambio_movimiento = pygame.time.get_ticks() + random.randint(800, 1500)
 
 
     def _mover_normal(self):
@@ -315,18 +331,11 @@ class Boss(pygame.sprite.Sprite):
             distancia = self.objetivo_movimiento - self.posicion
 
         if distancia.length() > 0:
-            direccion = distancia.normalize()
-            self.posicion += direccion * self.velocidad_movimiento
+            self.posicion += distancia.normalize() * self.velocidad_movimiento
             self.rect.center = (round(self.posicion.x), round(self.posicion.y))
 
 
-    # ==================================================
-    # DASH
-    # 1) VA A UNA ESQUINA
-    # 2) AVISA
-    # 3) DASHEA
-    # ==================================================
-
+    # primero viaja fisicamente a una esquina
     def iniciar_embestida(self):
         if self.yendo_esquina_dash or self.preparando_embestida or self.en_embestida:
             return
@@ -338,10 +347,9 @@ class Boss(pygame.sprite.Sprite):
             Vector2(margen_x, margen_y),
             Vector2(self.screen_width - margen_x, margen_y),
             Vector2(margen_x, self.screen_height - margen_y),
-            Vector2(self.screen_width - margen_x, self.screen_height - margen_y)
+            Vector2(self.screen_width - margen_x, self.screen_height - margen_y),
         ]
 
-        # no siempre elige la esquina mas cercana
         self.esquina_dash = random.choice(esquinas)
         self.yendo_esquina_dash = True
 
@@ -361,30 +369,20 @@ class Boss(pygame.sprite.Sprite):
 
             return
 
-        direccion = distancia.normalize()
-        self.posicion += direccion * self.velocidad_ir_esquina
+        self.posicion += distancia.normalize() * self.velocidad_ir_esquina
         self.rect.center = (round(self.posicion.x), round(self.posicion.y))
 
 
     def _actualizar_preparacion_embestida(self, objetivos):
-        ahora = pygame.time.get_ticks()
-
-        if ahora - self.inicio_preparacion_embestida < self.tiempo_preparacion_embestida:
-            return
-
-        self._empezar_embestida_real(objetivos)
+        if pygame.time.get_ticks() - self.inicio_preparacion_embestida >= self.tiempo_preparacion_embestida:
+            self._empezar_embestida_real(objetivos)
 
 
     def _empezar_embestida_real(self, objetivos):
-        # normalmente apunta a un jugador, pero a veces elige otro punto
-        if objetivos and random.random() < 0.78:
+        if objetivos and random.random() < 0.80:
             objetivo = Vector2(random.choice(objetivos))
-
         else:
-            objetivo = Vector2(
-                random.randint(100, self.screen_width - 100),
-                random.randint(100, self.screen_height - 100)
-            )
+            objetivo = Vector2(random.randint(100, self.screen_width - 100), random.randint(100, self.screen_height - 100))
 
         direccion = objetivo - self.posicion
 
@@ -403,21 +401,25 @@ class Boss(pygame.sprite.Sprite):
 
         if self.direccion_embestida.x > 0:
             t = (self.screen_width - margen_x - self.posicion.x) / self.direccion_embestida.x
+
             if t > 5:
                 tiempos.append(t)
 
         elif self.direccion_embestida.x < 0:
             t = (margen_x - self.posicion.x) / self.direccion_embestida.x
+
             if t > 5:
                 tiempos.append(t)
 
         if self.direccion_embestida.y > 0:
             t = (self.screen_height - margen_y - self.posicion.y) / self.direccion_embestida.y
+
             if t > 5:
                 tiempos.append(t)
 
         elif self.direccion_embestida.y < 0:
             t = (margen_y - self.posicion.y) / self.direccion_embestida.y
+
             if t > 5:
                 tiempos.append(t)
 
@@ -442,11 +444,12 @@ class Boss(pygame.sprite.Sprite):
         if distancia.length() <= self.velocidad_embestida:
             self.posicion = self.destino_embestida.copy()
             self.rect.center = (round(self.posicion.x), round(self.posicion.y))
+
             self.terminar_embestida()
+
             return
 
-        direccion = distancia.normalize()
-        self.posicion += direccion * self.velocidad_embestida
+        self.posicion += distancia.normalize() * self.velocidad_embestida
         self.rect.center = (round(self.posicion.x), round(self.posicion.y))
 
 
@@ -455,21 +458,21 @@ class Boss(pygame.sprite.Sprite):
         self.preparando_embestida = False
         self.yendo_esquina_dash = False
 
-        # se queda EXACTAMENTE donde termino
         self.objetivo_movimiento = self.posicion.copy()
         self.quieto_hasta = pygame.time.get_ticks() + 500
         self.ultimo_ataque = pygame.time.get_ticks()
 
 
-    # ==================================================
-    # PROYECTILES
-    # ==================================================
-
     def _crear_disparo(self, direccion, proyectiles, velocidad=None, tamano=32):
+        if len(proyectiles) >= self.limite_proyectiles[self.fase_actual]:
+            return False
+
         if velocidad is None:
             velocidad = 7 + self.fase_actual
 
         proyectiles.add(BossProjectile(self.rect.center, direccion, self.screen, velocidad, tamano))
+
+        return True
 
 
     def disparo_apuntado(self, objetivos, proyectiles):
@@ -484,55 +487,60 @@ class Boss(pygame.sprite.Sprite):
 
         direccion_base = direccion_base.normalize()
 
-        cantidades = {1: 3, 2: 5, 3: 7, 4: 9, 5: 11}
-        cantidad = cantidades[self.fase_actual]
+        # fase 3 antes tiraba demasiados
+        cantidades = {1: 3, 2: 4, 3: 5, 4: 7, 5: 9}
 
-        separacion = 9
+        cantidad = cantidades[self.fase_actual]
+        separacion = 10
+
         centro = (cantidad - 1) / 2
 
         for i in range(cantidad):
-            angulo = (i - centro) * separacion
-            direccion = direccion_base.rotate(angulo)
-            self._crear_disparo(direccion, proyectiles, 7.5 + self.fase_actual)
+            direccion = direccion_base.rotate((i - centro) * separacion)
+
+            if not self._crear_disparo(direccion, proyectiles, 7 + self.fase_actual):
+                break
 
 
     def disparo_radial(self, proyectiles):
-        cantidades = {1: 12, 2: 16, 3: 20, 4: 26, 5: 32}
-        cantidad = cantidades[self.fase_actual]
+        cantidades = {1: 10, 2: 12, 3: 14, 4: 18, 5: 22}
 
+        cantidad = cantidades[self.fase_actual]
         offset = random.uniform(0, 360 / cantidad)
 
         for i in range(cantidad):
-            angulo = offset + 360 * i / cantidad
-            direccion = Vector2(1, 0).rotate(angulo)
-            self._crear_disparo(direccion, proyectiles, 6 + self.fase_actual, 28)
+            direccion = Vector2(1, 0).rotate(offset + 360 * i / cantidad)
 
-        if self.fase_actual >= 4:
+            if not self._crear_disparo(direccion, proyectiles, 6 + self.fase_actual, 28):
+                break
+
+        # segundo anillo solamente en fase 5
+        if self.fase_actual == 5:
             for i in range(cantidad):
-                angulo = offset + 360 * i / cantidad + 360 / cantidad / 2
-                direccion = Vector2(1, 0).rotate(angulo)
-                self._crear_disparo(direccion, proyectiles, 9 + self.fase_actual, 24)
+                direccion = Vector2(1, 0).rotate(offset + 360 * i / cantidad + 360 / cantidad / 2)
+
+                if not self._crear_disparo(direccion, proyectiles, 9 + self.fase_actual, 24):
+                    break
 
 
     def ataque_cruzado(self, objetivos, proyectiles):
         for angulo in range(0, 360, 45):
-            direccion = Vector2(1, 0).rotate(angulo)
-            self._crear_disparo(direccion, proyectiles, 11)
+            if not self._crear_disparo(Vector2(1, 0).rotate(angulo), proyectiles, 10):
+                break
 
         self.disparo_apuntado(objetivos, proyectiles)
 
 
-    # ==================================================
-    # METEORITOS
-    # ==================================================
-
     def lluvia_corta(self, objetivos, meteoritos):
-        cantidad = 4 + self.fase_actual * 2
+        cantidades = {1: 3, 2: 4, 3: 5, 4: 6, 5: 7}
 
-        for _ in range(cantidad):
-            if objetivos and random.random() < 0.65:
+        for _ in range(cantidades[self.fase_actual]):
+            if len(meteoritos) >= self.limite_meteoritos[self.fase_actual]:
+                break
+
+            if objetivos and random.random() < 0.60:
                 objetivo = random.choice(objetivos)
-                x = int(objetivo[0] + random.randint(-130, 130))
+                x = int(objetivo[0] + random.randint(-140, 140))
                 x = max(20, min(self.screen_width - 20, x))
 
             else:
@@ -541,31 +549,29 @@ class Boss(pygame.sprite.Sprite):
             meteoritos.add(Meteorito(self.screen, x, 7 + self.fase_actual))
 
 
-    # ==================================================
-    # SUBDRAGONES
-    # ==================================================
-
     def invocar_dragones(self, subdragones):
-        if len(subdragones) >= self.max_subdragones:
+        limite = self.limite_subdragones[self.fase_actual]
+
+        if len(subdragones) >= limite:
             return
 
-        cantidades = {1: 1, 2: 2, 3: 3, 4: 4, 5: 6}
-        cantidad = cantidades[self.fase_actual]
+        cantidades = {1: 1, 2: 1, 3: 2, 4: 2, 5: 3}
 
-        for _ in range(cantidad):
-            if len(subdragones) >= self.max_subdragones:
+        for _ in range(cantidades[self.fase_actual]):
+            if len(subdragones) >= limite:
                 break
 
             subdragones.add(MiniDragon(self.screen, self.fase_actual))
 
 
-    # ==================================================
-    # RAFAGAS
-    # ==================================================
-
     def iniciar_rafaga(self, tipo):
+        if self.rafagas_pendientes > 0:
+            return
+
+        cantidades = {1: 2, 2: 2, 3: 3, 4: 3, 5: 4}
+
         self.tipo_rafaga = tipo
-        self.rafagas_pendientes = 3 + self.fase_actual
+        self.rafagas_pendientes = cantidades[self.fase_actual]
         self.proxima_rafaga = pygame.time.get_ticks()
 
 
@@ -580,19 +586,15 @@ class Boss(pygame.sprite.Sprite):
 
         if self.tipo_rafaga == "radial":
             self.disparo_radial(proyectiles)
-
         else:
             self.disparo_apuntado(objetivos, proyectiles)
 
         self.rafagas_pendientes -= 1
 
-        intervalos = {1: 300, 2: 260, 3: 220, 4: 180, 5: 140}
+        intervalos = {1: 350, 2: 330, 3: 300, 4: 260, 5: 220}
+
         self.proxima_rafaga = ahora + intervalos[self.fase_actual]
 
-
-    # ==================================================
-    # FASE ESPECIAL METEORITOS
-    # ==================================================
 
     def revisar_fase_meteoritos(self):
         if self.fase_meteoritos:
@@ -604,6 +606,7 @@ class Boss(pygame.sprite.Sprite):
             if porcentaje <= umbral and i not in self.meteoritos_usados:
                 self.meteoritos_usados.add(i)
                 self.iniciar_fase_meteoritos()
+
                 return
 
 
@@ -611,14 +614,16 @@ class Boss(pygame.sprite.Sprite):
         ahora = pygame.time.get_ticks()
 
         self.fase_meteoritos = True
-        self.inicio_fase_meteoritos = ahora
 
+        self.inicio_fase_meteoritos = ahora
         self.ultimo_meteorito = 0
         self.ultimo_spawn_fase = 0
 
         self.en_embestida = False
         self.preparando_embestida = False
         self.yendo_esquina_dash = False
+
+        self.rafagas_pendientes = 0
 
         self.image.set_alpha(0)
 
@@ -630,8 +635,7 @@ class Boss(pygame.sprite.Sprite):
             self.fase_meteoritos = False
             self.image.set_alpha(255)
 
-            # NO TELEPORT
-            # vuelve a aparecer exactamente donde estaba
+            # vuelve exactamente donde estaba
             self.rect.center = (round(self.posicion.x), round(self.posicion.y))
 
             self.quieto_hasta = ahora + 500
@@ -639,17 +643,17 @@ class Boss(pygame.sprite.Sprite):
 
             return
 
-        # asegurarse de que siga invisible aunque cambie de tamaño
         self.image.set_alpha(0)
 
-        intervalo_meteorito = max(130, 270 - self.fase_actual * 25)
+        intervalos = {1: 420, 2: 380, 3: 350, 4: 310, 5: 280}
+        intervalo_meteorito = intervalos[self.fase_actual]
 
-        if ahora - self.ultimo_meteorito >= intervalo_meteorito:
+        if ahora - self.ultimo_meteorito >= intervalo_meteorito and len(meteoritos) < self.limite_meteoritos[self.fase_actual]:
             self.ultimo_meteorito = ahora
 
-            if objetivos and random.random() < 0.75:
+            if objetivos and random.random() < 0.70:
                 objetivo = random.choice(objetivos)
-                x = int(objetivo[0] + random.randint(-150, 150))
+                x = int(objetivo[0] + random.randint(-160, 160))
                 x = max(20, min(self.screen_width - 20, x))
 
             else:
@@ -657,14 +661,13 @@ class Boss(pygame.sprite.Sprite):
 
             meteoritos.add(Meteorito(self.screen, x, 8 + self.fase_actual))
 
-        if ahora - self.ultimo_spawn_fase >= 1000:
+        # en fase 3 no genera manadas cada segundo
+        intervalo_dragones = {1: 1800, 2: 1700, 3: 1600, 4: 1450, 5: 1300}[self.fase_actual]
+
+        if ahora - self.ultimo_spawn_fase >= intervalo_dragones:
             self.ultimo_spawn_fase = ahora
             self.invocar_dragones(subdragones)
 
-
-    # ==================================================
-    # ELECCION ALEATORIA DE ATAQUES
-    # ==================================================
 
     def elegir_ataque(self, objetivos, proyectiles, meteoritos, subdragones):
         if not objetivos:
@@ -676,19 +679,20 @@ class Boss(pygame.sprite.Sprite):
 
         elif self.fase_actual == 2:
             ataques = ["apuntado", "radial", "dash", "meteoritos", "dragones"]
-            pesos = [25, 20, 20, 20, 15]
+            pesos = [30, 25, 20, 15, 10]
 
         elif self.fase_actual == 3:
+            # fase 3 sigue dificil pero ya no se superponen 800 cosas
             ataques = ["apuntado", "radial", "dash", "meteoritos", "dragones", "rafaga"]
-            pesos = [18, 18, 16, 16, 14, 18]
+            pesos = [24, 20, 18, 13, 10, 15]
 
         elif self.fase_actual == 4:
             ataques = ["apuntado", "radial", "dash", "meteoritos", "dragones", "rafaga", "cruzado"]
-            pesos = [12, 17, 13, 14, 14, 18, 12]
+            pesos = [17, 18, 15, 12, 10, 16, 12]
 
         else:
             ataques = ["apuntado", "radial", "dash", "meteoritos", "dragones", "rafaga", "cruzado", "caos"]
-            pesos = [10, 13, 10, 12, 13, 17, 10, 15]
+            pesos = [13, 15, 13, 11, 10, 16, 10, 12]
 
         ataque = random.choices(ataques, weights=pesos, k=1)[0]
 
@@ -699,8 +703,6 @@ class Boss(pygame.sprite.Sprite):
             self.disparo_radial(proyectiles)
 
         elif ataque == "dash":
-            # NO DASHEA TODAVIA
-            # primero empieza a viajar hacia una esquina
             self.iniciar_embestida()
 
         elif ataque == "meteoritos":
@@ -716,16 +718,15 @@ class Boss(pygame.sprite.Sprite):
             self.ataque_cruzado(objetivos, proyectiles)
 
         elif ataque == "caos":
+            # antes lanzaba casi todo junto
+            # ahora hace radial + UNA cosa extra
             self.disparo_radial(proyectiles)
-            self.disparo_apuntado(objetivos, proyectiles)
-            self.lluvia_corta(objetivos, meteoritos)
-            self.invocar_dragones(subdragones)
-            self.iniciar_rafaga(random.choice(["radial", "apuntado"]))
 
+            if random.random() < 0.5:
+                self.lluvia_corta(objetivos, meteoritos)
+            else:
+                self.invocar_dragones(subdragones)
 
-    # ==================================================
-    # UPDATE
-    # ==================================================
 
     def update(self, objetivos, proyectiles, meteoritos, subdragones):
         self.actualizar_fase()
@@ -735,22 +736,25 @@ class Boss(pygame.sprite.Sprite):
             self.actualizar_fase_meteoritos(objetivos, meteoritos, subdragones)
             return
 
-        # si eligio dash, PRIMERO se mueve hasta la esquina
         if self.yendo_esquina_dash:
             self._actualizar_ir_esquina()
             return
 
-        # cuando llega a la esquina se queda avisando 0.35 s
         if self.preparando_embestida:
             self._actualizar_preparacion_embestida(objetivos)
             return
 
-        # recien despues sale disparado
         if self.en_embestida:
             self._actualizar_embestida()
             return
 
-        self.actualizar_rafagas(objetivos, proyectiles)
+        # MUY IMPORTANTE:
+        # una rafaga reemplaza los ataques normales hasta terminar
+        if self.rafagas_pendientes > 0:
+            self.actualizar_rafagas(objetivos, proyectiles)
+            self._mover_normal()
+            return
+
         self._mover_normal()
 
         ahora = pygame.time.get_ticks()
@@ -759,10 +763,6 @@ class Boss(pygame.sprite.Sprite):
             self.ultimo_ataque = ahora
             self.elegir_ataque(objetivos, proyectiles, meteoritos, subdragones)
 
-
-    # ==================================================
-    # DAÑO
-    # ==================================================
 
     def recibir_dano(self, cantidad=1):
         if self.fase_meteoritos:
@@ -773,6 +773,7 @@ class Boss(pygame.sprite.Sprite):
         if self.vidas <= 0:
             self.vidas = 0
             self.kill()
+
             return True
 
         return False

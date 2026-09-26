@@ -694,8 +694,20 @@ def gameloop(screen, cantidad_jugadores=1):
         if not boss_aparecio:
             faltan = max(0, 300 - estadistica)
 
-            aviso = font_boss.render(f"BOSS EN {faltan} PTS", True, (255, 100, 100))
-            screen.blit(aviso, aviso.get_rect(center=(screen.get_width() // 2, 70)))
+            tiempo = pygame.time.get_ticks()
+
+            if faltan <= 50:
+                texto_alerta = f"PELIGRO: BOSS EN {faltan}"
+                color = (255, 40, 40) if (tiempo // 250) % 2 == 0 else (120, 0, 0)
+            else:
+                texto_alerta = f"BOSS EN {faltan} PTS"
+                color = (255, 180, 50)
+
+            sombra = font_boss.render(texto_alerta, True, (20, 5, 5))
+            screen.blit(sombra, sombra.get_rect(center=(screen.get_width() // 2 + 2, 102)))
+
+            aviso = font_boss.render(texto_alerta, True, color)
+            screen.blit(aviso, aviso.get_rect(center=(screen.get_width() // 2, 100)))
 
         if boss is not None and boss.alive():
             porcentaje = max(0, boss.vidas / boss.max_vidas)
