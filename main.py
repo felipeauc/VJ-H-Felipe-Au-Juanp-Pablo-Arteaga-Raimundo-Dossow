@@ -257,41 +257,52 @@ while running:
             ):
 
                 estadistica = resultado[1]
+                recibio_dano = resultado[2]
+                escudos_recogidos = resultado[3]
+                uso_rapid_fire = resultado[4]
+                balas_disparadas = resultado[5]
 
                 coins += estadistica
-
 
                 if estadistica > max_puntaje:
                     max_puntaje = estadistica
 
-
-                # primera partida
                 if not logros[0]:
 
                     logros[0] = True
                     notificaciones.mostrar(0)
 
-
-                # 500 puntos
                 if estadistica >= 500 and not logros[1]:
 
                     logros[1] = True
                     notificaciones.mostrar(1)
 
 
-                # 1000 puntos
                 if estadistica >= 1000 and not logros[2]:
 
                     logros[2] = True
                     notificaciones.mostrar(2)
 
-
-                # 100 coins
                 if coins >= 100 and not logros[3]:
 
                     logros[3] = True
                     notificaciones.mostrar(3)
 
+                if estadistica >= 250 and not recibio_dano and not logros[6]:
+                    logros[6] = True
+                    notificaciones.mostrar(6) 
+
+                if escudos_recogidos >= 3 and not logros[7]:
+                    logros[7] = True
+                    notificaciones.mostrar(7) 
+
+                if uso_rapid_fire and not logros[8]:
+                    logros[8] = True
+                    notificaciones.mostrar(8)  
+
+                if estadistica >= 100 and balas_disparadas == 0 and not logros[10]:
+                    logros[10] = True
+                    notificaciones.mostrar(10) 
 
                 guardar_progreso(
                     max_puntaje,

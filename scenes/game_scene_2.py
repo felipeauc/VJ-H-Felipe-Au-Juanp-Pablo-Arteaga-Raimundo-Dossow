@@ -345,6 +345,11 @@ def gameloop(
 
     clock = pygame.time.Clock()
 
+    recibio_dano = False
+    escudos_recogidos = 0
+    uso_rapid_fire = False
+    balas_disparadas = 0
+
     while True:
 
         screen.blit(
@@ -651,6 +656,7 @@ def gameloop(
                     player.shoot(
                         pygame.mouse.get_pos()
                     )
+                balas_disparadas += 1
 
         if not pausado:
 
@@ -887,12 +893,16 @@ def gameloop(
                 proyectil.rect
             )
 
+        if player.vidas < player.max_vidas:
+            recibio_dano = True
+
         # vidas Jorge
         for i in range(player.vidas):
 
             x = 20 + i * 40
 
             if player.escudo:
+                escudos_recogidos += 1
                 icono = icono_corazon_shield
 
             else:
@@ -946,7 +956,7 @@ def gameloop(
             )
 
             if player.rapid_fire:
-
+                uso_rapid_fire = True
                 icono = icono_flecha_rapid
 
             elif (
@@ -1001,6 +1011,9 @@ def gameloop(
         # P2
         if dos_jugadores:
 
+            if player2.vidas < player2.max_vidas:
+                recibio_dano = True
+
             for i in range(
                 player2.vidas
             ):
@@ -1012,6 +1025,7 @@ def gameloop(
                 )
 
                 if player2.escudo:
+                    escudos_recogidos += 1
                     icono = icono_corazon_shield
 
                 else:
@@ -1306,8 +1320,7 @@ def gameloop(
                 pygame.mouse.set_visible(True)
 
                 return (
-                    "dead",
-                    estadistica
+                    "dead", estadistica, recibio_dano, escudos_recogidos, uso_rapid_fire, balas_disparadas
                 )
 
             estadistica += procesar_balas(
